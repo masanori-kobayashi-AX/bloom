@@ -4,6 +4,10 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AssignmentController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordChangeController;
+use App\Http\Controllers\Cast\CustomerAlertController;
+use App\Http\Controllers\Cast\CustomerController;
+use App\Http\Controllers\Cast\CustomerNoteController;
+use App\Http\Controllers\Cast\NextActionController;
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +28,26 @@ Route::middleware(['auth', 'active'])->group(function () {
     // 初回PW変更を終えるまで他画面へ進めない
     Route::middleware('password.changed')->group(function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
+
+        // キャスト顧客管理（キャスト本人＝全操作／オーナーは閲覧のみ。書込はコントローラで本人限定）
+        Route::middleware('role:cast,admin')->group(function () {
+            Route::get('/actions', [NextActionController::class, 'index'])->name('cast.actions.index');
+            Route::post('/actions/{action}/complete', [NextActionController::class, 'complete'])->name('cast.actions.complete');
+
+            Route::prefix('customers')->name('cast.customers.')->group(function () {
+                Route::get('/', [CustomerController::class, 'index'])->name('index');
+                Route::get('/create', [CustomerController::class, 'create'])->name('create');
+                Route::post('/', [CustomerController::class, 'store'])->name('store');
+                Route::get('/{customer}', [CustomerController::class, 'show'])->name('show');
+                Route::get('/{customer}/edit', [CustomerController::class, 'edit'])->name('edit');
+                Route::put('/{customer}', [CustomerController::class, 'update'])->name('update');
+                Route::post('/{customer}/status', [CustomerController::class, 'updateStatus'])->name('status');
+                Route::post('/{customer}/notes', [CustomerNoteController::class, 'storePrivate'])->name('notes.private');
+                Route::post('/{customer}/shared-notes', [CustomerNoteController::class, 'storeShared'])->name('notes.shared');
+                Route::post('/{customer}/alerts', [CustomerAlertController::class, 'store'])->name('alerts.store');
+                Route::post('/{customer}/actions', [NextActionController::class, 'store'])->name('actions.store');
+            });
+        });
 
         // アカウント管理・紐付け（責任者・管理者のみ）
         Route::middleware('role:manager,admin')->prefix('admin')->name('admin.')->group(function () {

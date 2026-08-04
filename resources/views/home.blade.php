@@ -7,10 +7,49 @@
     @php($roleValue = $role?->value)
 
     @if($roleValue === 'cast')
+        <div class="row" style="gap:10px">
+            <div class="card" style="flex:1;text-align:center;margin:8px 0">
+                <div style="font-size:28px;font-weight:700">{{ $cast['customerCount'] }}</div>
+                <div class="muted" style="font-size:12px">登録顧客</div>
+            </div>
+            <div class="card" style="flex:1;text-align:center;margin:8px 0">
+                <div style="font-size:28px;font-weight:700;color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div>
+                <div class="muted" style="font-size:12px">未対応アクション</div>
+            </div>
+        </div>
+
+        @if($cast['overdueActions'] > 0)
+            <div class="flash err">期限が過ぎたアクションが {{ $cast['overdueActions'] }} 件あります。連絡を忘れていないか確認しましょう。</div>
+        @endif
+
         <div class="card">
-            <h2>あなたのホーム</h2>
-            <p class="muted">顧客管理・次のアクション・来店予定は Phase 2 以降でここに表示されます。</p>
-            <div class="notice">今は基盤（ログイン・権限・店舗設定）の段階です。まずは安心してお使いいただける土台を作っています。</div>
+            <div class="row"><h2 style="margin:0">今日やること</h2><span style="flex:1"></span><a href="{{ route('cast.actions.index') }}" style="font-size:13px">すべて見る</a></div>
+            @forelse($cast['dueTodayActions'] as $a)
+                <a href="{{ route('cast.customers.show', $a->relationship_id) }}" style="display:block;color:inherit">
+                    <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
+                        <span>{{ $a->kind->label() }}：{{ $a->content }}</span>
+                        <span style="flex:1"></span>
+                        <span class="tag {{ $a->due_on && $a->due_on->isPast() ? 'off' : '' }}">{{ $a->relationship?->customer_name }}</span>
+                    </div>
+                </a>
+            @empty
+                <p class="muted">今日締切のアクションはありません。</p>
+            @endforelse
+        </div>
+
+        <div class="card">
+            <div class="row"><h2 style="margin:0">最近登録した顧客</h2><span style="flex:1"></span><a href="{{ route('cast.customers.index') }}" style="font-size:13px">顧客一覧</a></div>
+            @forelse($cast['recent'] as $r)
+                <a href="{{ route('cast.customers.show', $r) }}" style="display:block;color:inherit">
+                    <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
+                        <span>{{ $r->avatar_emoji ?? '👤' }} {{ $r->customer_name }}</span>
+                        <span style="flex:1"></span>
+                        <span class="tag">{{ $r->status?->label() }}</span>
+                    </div>
+                </a>
+            @empty
+                <p class="muted">まだ顧客がいません。右下の「＋追加」から登録できます。</p>
+            @endforelse
         </div>
     @elseif($roleValue === 'staff')
         <div class="card">

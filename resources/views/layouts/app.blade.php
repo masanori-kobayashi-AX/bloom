@@ -101,6 +101,14 @@
             <a href="{{ route('admin.assignments.index') }}" class="{{ request()->routeIs('admin.assignments.*') ? 'active' : '' }}"><span class="ic">🔗</span>担当</a>
             <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
         </nav>
+    @elseif($r && $r->value === 'cast')
+        <nav class="nav">
+            <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><span class="ic">🏠</span>ホーム</a>
+            <a href="{{ route('cast.customers.index') }}" class="{{ request()->routeIs('cast.customers.*') ? 'active' : '' }}"><span class="ic">👤</span>顧客</a>
+            <a href="{{ route('cast.customers.create') }}" class="{{ request()->routeIs('cast.customers.create') ? 'active' : '' }}"><span class="ic" style="font-size:26px;line-height:1.1">＋</span>追加</a>
+            <a href="{{ route('cast.actions.index') }}" class="{{ request()->routeIs('cast.actions.*') ? 'active' : '' }}"><span class="ic">✓</span>アクション</a>
+            <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
+        </nav>
     @else
         <nav class="nav">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><span class="ic">🏠</span>ホーム</a>
