@@ -1,0 +1,185 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\RoleKey;
+use App\Http\Controllers\Controller;
+use App\Models\Cast;
+use App\Models\Role;
+use App\Models\StaffProfile;
+use App\Models\User;
+use App\Models\UserStoreMembership;
+use App\Services\AuditLogger;
+use App\Support\CurrentStore;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+/**
+ * アカウント管理（作成・停止・再開・PW再設定）。責任者・管理者のみ。
+ * すべて現在店舗（store_id）スコープ内で完結する。
+ */
+class AccountController extends Controller
+{
+    /** 作成者が付与できるロール。 */
+    private function assignableRoles(): array
+    {
+        $actor = Auth::user();
+        // 管理者: cast/staff/manager、責任者: cast/staff のみ
+        return $actor->isAdmin()
+            ? [RoleKey::Cast, RoleKey::Staff, RoleKey::Manager]
+            : [RoleKey::Cast, RoleKey::Staff];
+    }
+
+    public function index()
+    {
+        $storeId = CurrentStore::id();
+
+        $members = UserStoreMembership::with(['user', 'role'])
+            ->where('store_id', $storeId)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('admin.accounts.index', compact('members'));
+    }
+
+    public function create()
+    {
+        return view('admin.accounts.create', [
+            'roles' => $this->assignableRoles(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $allowed = array_map(fn (RoleKey $r) => $r->value, $this->assignableRoles());
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'login_id' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('users', 'login_id')],
+            'email' => ['nullable', 'email', 'max:255'],
+            'role' => ['required', Rule::in($allowed)],
+            'display_name' => ['required', 'string', 'max:100'],
+            'position' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $roleKey = RoleKey::from($data['role']);
+        $role = Role::where('key', $roleKey->value)->firstOrFail();
+        $storeId = CurrentStore::id();
+        $tempPassword = Str::password(10);
+
+        $user = DB::transaction(function () use ($data, $role, $roleKey, $storeId, $tempPassword) {
+            $user = User::create([
+                'name' => $data['name'],
+                'login_id' => $data['login_id'],
+                'email' => $data['email'] ?? null,
+                'password' => Hash::make($tempPassword),
+                'must_change_password' => true,
+                'is_active' => true,
+            ]);
+
+            UserStoreMembership::create([
+                'store_id' => $storeId,
+                'user_id' => $user->id,
+                'role_id' => $role->id,
+                'status' => 'active',
+                'joined_at' => now(),
+            ]);
+
+            if ($roleKey === RoleKey::Cast) {
+                Cast::create([
+                    'store_id' => $storeId,
+                    'user_id' => $user->id,
+                    'display_name' => $data['display_name'],
+                    'status' => 'active',
+                    'joined_on' => now()->toDateString(),
+                ]);
+            } else { // staff / manager
+                StaffProfile::create([
+                    'store_id' => $storeId,
+                    'user_id' => $user->id,
+                    'display_name' => $data['display_name'],
+                    'position' => $data['position'] ?? $roleKey->label(),
+                    'status' => 'active',
+                ]);
+            }
+
+            AuditLogger::record('account.create', $user, "アカウント作成（{$roleKey->label()}）", after: [
+                'login_id' => $user->login_id,
+                'role' => $roleKey->value,
+            ], storeId: $storeId);
+
+            return $user;
+        });
+
+        return redirect()->route('admin.accounts.index')
+            ->with('status', "アカウントを作成しました。ログインID: {$user->login_id}")
+            ->with('temp_password', $tempPassword); // 初回パスワードを一度だけ表示
+    }
+
+    public function suspend(Request $request, User $user): RedirectResponse
+    {
+        $request->validate(['reason' => ['nullable', 'string', 'max:255']]);
+        $storeId = CurrentStore::id();
+
+        $membership = UserStoreMembership::where('store_id', $storeId)
+            ->where('user_id', $user->id)->firstOrFail();
+
+        DB::transaction(function () use ($user, $membership, $request, $storeId) {
+            $membership->update([
+                'status' => 'suspended',
+                'suspended_at' => now(),
+                'suspended_reason' => $request->input('reason'),
+            ]);
+            // アカウント自体も無効化（データは削除しない：停止と削除は分離）
+            $user->forceFill(['is_active' => false])->saveQuietly();
+
+            AuditLogger::record('account.suspend', $user, '退店・アカウント停止', after: [
+                'reason' => $request->input('reason'),
+            ], storeId: $storeId);
+        });
+
+        return redirect()->route('admin.accounts.index')
+            ->with('status', "{$user->name} を利用停止にしました（データは保持されます）。");
+    }
+
+    public function reactivate(User $user): RedirectResponse
+    {
+        $storeId = CurrentStore::id();
+        $membership = UserStoreMembership::where('store_id', $storeId)
+            ->where('user_id', $user->id)->firstOrFail();
+
+        DB::transaction(function () use ($user, $membership, $storeId) {
+            $membership->update(['status' => 'active', 'suspended_at' => null, 'suspended_reason' => null]);
+            $user->forceFill(['is_active' => true])->saveQuietly();
+            AuditLogger::record('account.reactivate', $user, 'アカウント再開', storeId: $storeId);
+        });
+
+        return redirect()->route('admin.accounts.index')->with('status', "{$user->name} を再開しました。");
+    }
+
+    public function resetPassword(User $user): RedirectResponse
+    {
+        $storeId = CurrentStore::id();
+        // 店舗スコープ確認
+        UserStoreMembership::where('store_id', $storeId)->where('user_id', $user->id)->firstOrFail();
+
+        $tempPassword = Str::password(10);
+        $user->forceFill([
+            'password' => Hash::make($tempPassword),
+            'must_change_password' => true,
+            'failed_attempts' => 0,
+            'locked_until' => null,
+        ])->saveQuietly();
+
+        AuditLogger::record('account.password_reset', $user, '管理者がパスワードを再設定', storeId: $storeId);
+
+        return redirect()->route('admin.accounts.index')
+            ->with('status', "{$user->name} のパスワードを再設定しました。")
+            ->with('temp_password', $tempPassword);
+    }
+}
