@@ -16,7 +16,8 @@
             background:var(--bg);color:var(--ink);line-height:1.6;-webkit-text-size-adjust:100%}
         a{color:var(--rose-deep);text-decoration:none}
         .wrap{max-width:640px;margin:0 auto;padding:16px;padding-bottom:96px}
-        .wrap.wide{max-width:1040px}
+        .wrap.wide{max-width:1180px}
+        @media(min-width:900px){ .wrap.wide .grid-cards{grid-template-columns:repeat(3,1fr)} }
         .grid-cards{display:grid;grid-template-columns:1fr;gap:12px}
         @media(min-width:768px){.grid-cards{grid-template-columns:1fr 1fr}}
         .after-likely{color:#b25c72;font-weight:700}
