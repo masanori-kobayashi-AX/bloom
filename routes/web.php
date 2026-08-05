@@ -88,6 +88,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/{customer}/staff-request', [StaffRequestController::class, 'store'])->name('staff-request.store');
             });
             Route::post('/bottles/{bottle}/empty', [CustomerBottleController::class, 'markEmpty'])->name('cast.bottles.empty');
+            Route::post('/alerts/{alert}/resolve', [CustomerAlertController::class, 'resolve'])->name('cast.alerts.resolve');
 
             // Phase 5：コンディション・相談（公開先を本人が選ぶ）
             Route::get('/support', [SupportController::class, 'index'])->name('cast.support.index');
@@ -109,6 +110,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/visits/{visit}', [VisitController::class, 'show'])->name('visits.show');
             Route::post('/visits/{visit}', [VisitController::class, 'update'])->name('visits.update');
             Route::post('/visits/{visit}/leave', [VisitController::class, 'leave'])->name('visits.leave');
+            Route::post('/visits/{visit}/cancel', [VisitController::class, 'cancel'])->name('visits.cancel');
             Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');
         });
 

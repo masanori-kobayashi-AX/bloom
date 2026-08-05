@@ -21,13 +21,15 @@ use Illuminate\Support\Facades\Auth;
 class WorkController extends Controller
 {
     /** 来店中一覧（黒服の通常業務ページ／店長も閲覧） */
-    public function index()
+    public function index(Request $request)
     {
         $storeId = CurrentStore::id();
         $today = now()->toDateString();
 
-        $visits = Visit::with(['customer.keptBottles', 'customer.alerts' => fn ($q) => $q->where('resolved', false), 'primaryCast'])
+        // 席単位を主軸に並べる（席番号→到着順）。営業中は「どの席で何が起きているか」が先。
+        $visits = Visit::with(['customer.keptBottles', 'customer.alerts' => fn ($q) => $q->active(), 'primaryCast'])
             ->present()
+            ->orderByRaw('seat is null, seat asc')
             ->orderBy('arrived_at')
             ->get();
 
@@ -70,6 +72,7 @@ class WorkController extends Controller
         return view('staff.work.index', [
             'cards' => $cards,
             'todayPlanCount' => $todayPlanCount,
+            'big' => $request->boolean('big'),
         ]);
     }
 

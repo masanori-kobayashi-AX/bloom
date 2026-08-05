@@ -38,6 +38,14 @@
         .ch-danger{background:#fdeeeb;border-color:#f0c4bb}
         .ch-danger h2{color:var(--warn)}
         .ch .item{background:rgba(255,255,255,.7);border-radius:10px;padding:8px 10px;margin:6px 0}
+        /* 席バッジ・営業中モード（黒服） */
+        .seat-badge{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:44px;padding:0 10px;border-radius:12px;background:var(--ink);color:#fff;font-weight:700;font-size:18px}
+        .cust-name{font-size:19px;font-weight:700}
+        .grid-cards.big .card{padding:22px}
+        .grid-cards.big .cust-name{font-size:28px}
+        .grid-cards.big .seat-badge{min-width:64px;height:56px;font-size:24px}
+        .grid-cards.big .hl{font-size:17px}
+        .grid-cards.big .meta{display:none}
         /* 進捗バー（目標管理） */
         .bar{height:12px;background:#efe6ea;border-radius:999px;overflow:hidden}
         .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--rose),var(--gold));border-radius:999px}

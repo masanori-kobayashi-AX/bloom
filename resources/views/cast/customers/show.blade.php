@@ -3,7 +3,7 @@
 
 @section('content')
     @php($c = $rel->customer)
-    @php($openAlerts = $c->alerts->where('resolved', false))
+    @php($openAlerts = $c->alerts->filter(fn ($a) => ! $a->resolved && ! $a->isExpired()))
     @php($lastVisit = $pastVisits->first())
     @php($nextPlan = $upcomingPlans->first())
     @php($topAction = $rel->nextActions->where('completed', false)->sortBy('due_on')->first())
@@ -102,15 +102,27 @@
         @endif
     </div>
 
-    {{-- ⚠️ 重大注意（安全・金銭・トラブルのみ） --}}
+    {{-- ⚠️ 重大注意（安全・金銭・トラブルのみ・構造化） --}}
     <details class="sec" id="alerts">
-        <summary>⚠️ 重大注意（安全・金銭・トラブル）@if($c->alerts->isNotEmpty())<span class="tag ch-danger" style="color:var(--warn)">{{ $c->alerts->count() }}</span>@endif</summary>
+        <summary>⚠️ 重大注意（安全・金銭・トラブル）@if($openAlerts->isNotEmpty())<span class="tag ch-danger" style="color:var(--warn)">{{ $openAlerts->count() }}</span>@endif</summary>
         <div style="padding:4px 2px 12px">
             @forelse($c->alerts as $al)
-                <div class="ch ch-danger" style="margin:6px 0;padding:10px 12px">
-                    <span class="tag" style="background:#fff;color:var(--warn);border-color:#f0c4bb">{{ $al->category?->label() }}</span>
+                <div class="ch ch-danger" style="margin:6px 0;padding:10px 12px;{{ $al->resolved || $al->isExpired() ? 'opacity:.55' : '' }}">
+                    <div class="row">
+                        <span class="tag" style="background:#fff;color:var(--warn);border-color:#f0c4bb">{{ $al->category?->label() }}</span>
+                        @if($al->resolved)<span class="tag off">取下げ済</span>@elseif($al->isExpired())<span class="tag off">失効</span>@endif
+                        <span style="flex:1"></span>
+                        @if($canEdit && !$al->resolved)
+                        <form method="POST" action="{{ route('cast.alerts.resolve', $al) }}" onsubmit="return confirm('この注意を取り下げますか？（記録は残ります）')">@csrf
+                            <button class="btn sm ghost" type="submit">取り下げ</button>
+                        </form>
+                        @endif
+                    </div>
                     <div><strong>事実：</strong>{{ $al->fact }}</div>
+                    @if($al->source || $al->occurred_on)<div class="muted" style="font-size:12px">情報源：{{ $al->source ?: '—' }}@if($al->occurred_on) ／ 発生日：{{ $al->occurred_on->format('n/j') }}@endif</div>@endif
+                    @if($al->action_plan)<div><strong>対応方針：</strong>{{ $al->action_plan }}</div>@endif
                     @if($al->subjective)<div class="muted"><strong>所感：</strong>{{ $al->subjective }}</div>@endif
+                    <div class="muted" style="font-size:11px">記録 {{ $al->created_at->format('n/j') }}@if($al->expires_on) ／ 失効 {{ $al->expires_on->format('n/j') }}@endif</div>
                 </div>
             @empty
                 <p class="muted">記録はありません。トラブルや安全上の懸念だけを記録してください。</p>
@@ -120,11 +132,18 @@
                 <select name="category" required>
                     @foreach(\App\Enums\AlertCategory::options() as $val=>$label)<option value="{{ $val }}">{{ $label }}</option>@endforeach
                 </select>
-                <input name="fact" placeholder="事実（起きたこと）" required style="margin-top:8px">
-                <input name="subjective" placeholder="所感（任意）" style="margin-top:8px">
-                <select name="severity" style="margin-top:8px"><option value="low">低</option><option value="mid" selected>中</option><option value="high">高</option></select>
+                <input name="fact" placeholder="事実（起きたこと・確認済みの事実だけ）" required style="margin-top:8px">
+                <input name="source" placeholder="情報源（本人・会計・防犯など／任意）" style="margin-top:8px">
+                <input name="occurred_on" type="date" placeholder="発生日" style="margin-top:8px">
+                <input name="action_plan" placeholder="対応方針（任意）" style="margin-top:8px">
+                <input name="subjective" placeholder="所感（任意・主観）" style="margin-top:8px">
+                <div class="row" style="gap:8px;margin-top:8px">
+                    <select name="severity" style="flex:1"><option value="low">低</option><option value="mid" selected>中</option><option value="high">高</option></select>
+                    <input name="expires_on" type="date" style="flex:1" title="失効日（再確認期限）">
+                </div>
                 <button class="btn sm danger" type="submit" style="margin-top:8px">記録する</button>
             </form>
+            <div class="notice">性格・容姿・病名の推測・国籍・思想などは書かないでください。確認できた事実だけを、失効日（再確認の期限）とともに記録します。</div>
             @endif
         </div>
     </details>

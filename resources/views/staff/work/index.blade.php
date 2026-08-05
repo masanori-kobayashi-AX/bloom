@@ -6,24 +6,24 @@
     <div class="row">
         <h1 style="margin:0">来店中のお客様</h1>
         <span style="flex:1"></span>
-        <a class="btn sm ghost" href="{{ route('staff.plans') }}">📅 今日の予定（{{ $todayPlanCount }}）</a>
-        <a class="btn sm ghost" href="{{ route('staff.search') }}">🔍 検索・来店開始</a>
+        <a class="btn sm {{ $big ? '' : 'ghost' }}" href="{{ route('staff.work.index', ['big' => $big ? null : 1]) }}">{{ $big ? '通常表示' : '🔍 営業中モード' }}</a>
+        <a class="btn sm ghost" href="{{ route('staff.plans') }}">📅 予定（{{ $todayPlanCount }}）</a>
+        <a class="btn sm ghost" href="{{ route('staff.search') }}">🔍 来店開始</a>
     </div>
 
     @if($cards->isEmpty())
-        <div class="card"><p class="muted">現在、来店中のお客様はいません。「検索・来店開始」から来店を登録できます。</p></div>
+        <div class="card"><p class="muted">現在、来店中のお客様はいません。「来店開始」から来店を登録できます。</p></div>
     @else
-    <div class="grid-cards" style="margin-top:12px">
+    <div class="grid-cards {{ $big ? 'big' : '' }}" style="margin-top:12px">
         @foreach($cards as $card)
             @php($v = $card['visit'])@php($c = $v->customer)
             <div class="card" style="margin:0">
-                <div class="row">
+                <div class="row" style="gap:12px">
+                    <span class="seat-badge">{{ $v->seat ?: '席?' }}</span>
                     <div style="min-width:0">
-                        <div style="font-size:19px;font-weight:700">{{ $card['name'] }}</div>
+                        <div class="cust-name">{{ $card['name'] }}</div>
                         <div class="muted" style="font-size:12px">
-                            指名：{{ $v->primaryCast?->display_name ?? '—' }}
-                            @if($v->seat) ・ 席：{{ $v->seat }}@endif
-                            ・ {{ $v->arrived_at->format('H:i') }}〜
+                            指名：{{ $v->primaryCast?->display_name ?? '—' }} ・ {{ $v->arrived_at->format('H:i') }}〜
                         </div>
                     </div>
                     <span style="flex:1"></span>
@@ -32,13 +32,15 @@
                     @endif
                 </div>
 
-                <div class="muted" style="font-size:12px;margin-top:6px">来店 {{ $card['pastVisits'] }} 回目@if($card['lastVisit']) ・ 前回 {{ \Illuminate\Support\Carbon::parse($card['lastVisit'])->format('n/j') }}@endif</div>
+                <div class="muted meta" style="font-size:12px;margin-top:6px">来店 {{ $card['pastVisits'] }} 回目@if($card['lastVisit']) ・ 前回 {{ \Illuminate\Support\Carbon::parse($card['lastVisit'])->format('n/j') }}@endif</div>
 
-                {{-- 重大注意 --}}
+                {{-- 重大注意（現役のみ）。未入力と「なし」を区別して誤認防止 --}}
                 @if($c->alerts->isNotEmpty())
                     <div class="flash err" style="margin:8px 0">
                         @foreach($c->alerts as $al)<div>⚠️ [{{ $al->category?->label() }}] {{ \Illuminate\Support\Str::limit($al->fact, 40) }}</div>@endforeach
                     </div>
+                @else
+                    <div class="muted" style="font-size:12px;margin:6px 0">重大注意の登録はありません（＝安全確認済みではありません）</div>
                 @endif
 
                 {{-- キープボトル --}}
@@ -53,10 +55,14 @@
                     @endforeach
                 @endif
 
-                {{-- 大元の共有情報（持続的） --}}
+                {{-- 大元の共有情報（持続的）＋鮮度表示 --}}
                 @if($card['sharedNotes']->isNotEmpty())
                     @foreach($card['sharedNotes'] as $s)
-                        <div class="hl">@if($s->category)[{{ $s->category }}] @endif{{ $s->body }}</div>
+                        <div class="hl">@if($s->category)[{{ $s->category }}] @endif{{ $s->body }}
+                            <span class="muted" style="font-size:11px">
+                                （{{ $s->updated_at->diffForHumans(['short' => true]) }}@if($s->updated_at->diffInDays(now()) >= 30)・<span style="color:var(--warn)">30日以上未更新</span>@endif）
+                            </span>
+                        </div>
                     @endforeach
                 @endif
 

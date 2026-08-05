@@ -87,7 +87,7 @@ class VisitController extends Controller
     public function show(Visit $visit)
     {
         $today = now()->toDateString();
-        $visit->load(['customer.keptBottles', 'customer.alerts' => fn ($q) => $q->where('resolved', false), 'primaryCast', 'bottles']);
+        $visit->load(['customer.keptBottles', 'customer.alerts' => fn ($q) => $q->active(), 'primaryCast', 'bottles']);
 
         $sharedNotes = collect();
         if ($visit->primary_cast_id) {
@@ -188,5 +188,23 @@ class VisitController extends Controller
         ]);
 
         return back()->with('status', '来店予定を確認しました。');
+    }
+
+    /** 来店取消（誤操作）。来店中のみ・論理削除で復元可能・監査記録。 */
+    public function cancel(Visit $visit): RedirectResponse
+    {
+        abort_unless($visit->store_id === CurrentStore::id(), 403);
+        abort_unless($visit->status === VisitStatus::Present, 403, '来店中のみ取り消せます。');
+
+        DB::transaction(function () use ($visit) {
+            if ($visit->visit_plan_id) {
+                VisitPlan::where('id', $visit->visit_plan_id)->update(['status' => VisitPlanStatus::Confirmed->value]);
+            }
+            VisitCast::where('visit_id', $visit->id)->delete();
+            \App\Services\AuditLogger::record('visit.cancel', $visit, '来店を取消（誤操作）', storeId: $visit->store_id);
+            $visit->delete();
+        });
+
+        return redirect()->route('staff.work.index')->with('status', '来店を取り消しました（記録は保持されます）。');
     }
 }

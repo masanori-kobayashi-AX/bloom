@@ -22,8 +22,12 @@
 
         @if($c->alerts->isNotEmpty())
             <div class="flash err" style="margin-top:10px">
-                @foreach($c->alerts as $al)<div>⚠️ [{{ $al->category?->label() }}] {{ $al->fact }}</div>@endforeach
+                @foreach($c->alerts as $al)
+                    <div>⚠️ [{{ $al->category?->label() }}] {{ $al->fact }}@if($al->action_plan) → <em>{{ $al->action_plan }}</em>@endif</div>
+                @endforeach
             </div>
+        @else
+            <div class="muted" style="font-size:12px;margin-top:8px">重大注意の登録はありません（＝安全を確認済みという意味ではありません）</div>
         @endif
         @if($c->keptBottles->isNotEmpty())
             <div style="margin-top:8px"><strong>🍾 キープボトル：</strong>{{ $c->keptBottles->pluck('name')->implode(' / ') }}</div>
@@ -42,9 +46,11 @@
     <div class="card">
         <h2>大元の共有情報（キャストから）</h2>
         @forelse($sharedNotes as $s)
-            <div class="hl">@if($s->category)[{{ $s->category }}] @endif{{ $s->body }}</div>
+            <div class="hl">@if($s->category)[{{ $s->category }}] @endif{{ $s->body }}
+                <span class="muted" style="font-size:11px">（{{ $s->updated_at->diffForHumans(['short' => true]) }}@if($s->updated_at->diffInDays(now()) >= 30)・<span style="color:var(--warn)">30日以上未更新</span>@endif）</span>
+            </div>
         @empty
-            <p class="muted">共有事項はありません。</p>
+            <p class="muted">共有事項の登録はありません（未確認の可能性があります）。</p>
         @endforelse
     </div>
 
@@ -86,6 +92,13 @@
             <label for="after_note">接客後メモ・次につながる情報</label>
             <input id="after_note" name="after_note">
             <button class="btn" type="submit" style="margin-top:12px">退店を記録する</button>
+        </form>
+    </div>
+
+    {{-- 来店取消（誤操作） --}}
+    <div class="card" style="text-align:center">
+        <form method="POST" action="{{ route('staff.visits.cancel', $visit) }}" onsubmit="return confirm('この来店を取り消しますか？（誤って開始した場合のみ。記録は残ります）')">@csrf
+            <button class="btn sm ghost danger" type="submit" style="width:auto">誤操作：この来店を取り消す</button>
         </form>
     </div>
     @else
