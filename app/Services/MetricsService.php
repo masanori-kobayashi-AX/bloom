@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Cast;
 use App\Models\CastCustomerRelationship;
+use App\Models\CastGoal;
 use App\Models\Visit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -123,6 +124,25 @@ class MetricsService
             'multiCastCount' => $multiCast->count(),
             'dormant' => $dormant,
             'topCustomers' => $topCustomers,
+        ];
+    }
+
+    /**
+     * キャストの当月目標と進捗（支援用・順位付けしない）。
+     * @return array{target:int,actual:int,rate:?int,hasGoal:bool}
+     */
+    public function castProgress(int $castId): array
+    {
+        $goal = CastGoal::where('cast_id', $castId)->where('period', CastGoal::currentPeriod())->first();
+        $target = (int) ($goal?->target_amount ?? 0);
+        $actual = (int) Visit::where('primary_cast_id', $castId)
+            ->whereBetween('arrived_at', [$this->monthStart, $this->monthEnd])->sum('amount');
+
+        return [
+            'target' => $target,
+            'actual' => $actual,
+            'rate' => $target > 0 ? min(100, (int) round($actual / $target * 100)) : null,
+            'hasGoal' => $goal !== null && $target > 0,
         ];
     }
 

@@ -6,6 +6,18 @@
     <h1>こんにちは、{{ $roleValue === 'cast' ? ($castName ?? $user->name) : $user->name }}さん</h1>
 
     @if($roleValue === 'cast')
+        {{-- 今月の目標と進捗（本人のための指標） --}}
+        <div class="card">
+            <div class="row"><h2 style="margin:0">今月の目標</h2><span style="flex:1"></span><a href="{{ route('cast.goal.edit') }}" style="font-size:13px">{{ $goal['hasGoal'] ? '変更' : '設定する' }}</a></div>
+            @if($goal['hasGoal'])
+                <div class="row" style="margin:6px 0 4px"><span class="muted" style="font-size:13px">¥{{ number_format($goal['actual']) }} / ¥{{ number_format($goal['target']) }}</span><span style="flex:1"></span><strong>{{ $goal['rate'] }}%</strong></div>
+                <div class="bar"><span style="width:{{ $goal['rate'] }}%"></span></div>
+                <div class="muted" style="font-size:11px;margin-top:6px">あと ¥{{ number_format(max(0, $goal['target'] - $goal['actual'])) }} で目標達成。あなたのための目標です（評価には使いません）。</div>
+            @else
+                <p class="muted" style="margin:6px 0">今月の売上目標を設定すると、進捗がここに表示されます。</p>
+            @endif
+        </div>
+
         <div class="stat-grid" style="margin:8px 0">
             <div class="stat"><div class="stat-num">{{ $cast['customerCount'] }}</div><div class="stat-label">登録顧客</div></div>
             <div class="stat"><div class="stat-num" style="color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div><div class="stat-label">未対応アクション</div></div>

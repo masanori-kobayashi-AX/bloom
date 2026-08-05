@@ -10,6 +10,7 @@ use App\Http\Controllers\Cast\CustomerBottleController;
 use App\Http\Controllers\Cast\CustomerController;
 use App\Http\Controllers\Cast\CustomerNoteController;
 use App\Http\Controllers\Cast\DailyHandoverController;
+use App\Http\Controllers\Cast\GoalController;
 use App\Http\Controllers\Cast\NextActionController;
 use App\Http\Controllers\Cast\StaffRequestController;
 use App\Http\Controllers\Cast\SupportController;
@@ -91,6 +92,10 @@ Route::middleware(['auth', 'active'])->group(function () {
             // Phase 5：コンディション・相談（公開先を本人が選ぶ）
             Route::get('/support', [SupportController::class, 'index'])->name('cast.support.index');
             Route::post('/support', [SupportController::class, 'store'])->name('cast.support.store');
+
+            // 目標管理：本人が月次目標を設定・変更
+            Route::get('/goal', [GoalController::class, 'edit'])->name('cast.goal.edit');
+            Route::put('/goal', [GoalController::class, 'update'])->name('cast.goal.update');
         });
 
         // 黒服・店長の通常業務ページ（来店運用）。過去の顧客整理とは用途が違うので分離。
