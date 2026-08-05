@@ -108,6 +108,8 @@
             <div class="row" style="margin-top:12px">
                 <a class="btn sm" href="{{ route('admin.accounts.index') }}">👥 アカウント管理</a>
                 <a class="btn sm ghost" href="{{ route('admin.assignments.index') }}">🔗 担当の紐付け</a>
+                <a class="btn sm ghost" href="{{ route('manager.announcements.index') }}">📣 お知らせ配信</a>
+                <a class="btn sm ghost" href="{{ route('inbox.index') }}">📥 受信箱</a>
             </div>
         </div>
         <div class="card">

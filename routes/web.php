@@ -11,8 +11,13 @@ use App\Http\Controllers\Cast\CustomerController;
 use App\Http\Controllers\Cast\CustomerNoteController;
 use App\Http\Controllers\Cast\DailyHandoverController;
 use App\Http\Controllers\Cast\NextActionController;
+use App\Http\Controllers\Cast\StaffRequestController;
+use App\Http\Controllers\Cast\SupportController;
 use App\Http\Controllers\Cast\VisitPlanController;
+use App\Http\Controllers\AnnouncementFeedController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InboxController;
+use App\Http\Controllers\Manager\AnnouncementController;
 use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Staff\VisitController;
 use App\Http\Controllers\Staff\WorkController;
@@ -36,6 +41,26 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::middleware('password.changed')->group(function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
 
+        // お知らせ閲覧（全ロール共通・既読管理）
+        Route::get('/announcements', [AnnouncementFeedController::class, 'index'])->name('announcements.index');
+        Route::post('/announcements/{announcement}/read', [AnnouncementFeedController::class, 'read'])->name('announcements.read');
+
+        // 受信箱（黒服・責任者）：業務連絡＋相談への対応
+        Route::middleware('role:staff,manager,admin')->group(function () {
+            Route::get('/inbox', [InboxController::class, 'index'])->name('inbox.index');
+            Route::post('/inbox/requests/{staffRequest}/status', [InboxController::class, 'updateRequest'])->name('inbox.requests.status');
+            Route::post('/inbox/support/{support}/acknowledge', [InboxController::class, 'acknowledgeSupport'])->name('inbox.support.ack');
+            Route::post('/inbox/support/{support}/resolve', [InboxController::class, 'resolveSupport'])->name('inbox.support.resolve');
+        });
+
+        // お知らせ配信管理（責任者・管理者）
+        Route::middleware('role:manager,admin')->prefix('manager')->name('manager.')->group(function () {
+            Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+            Route::get('/announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+            Route::post('/announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+            Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        });
+
         // キャスト顧客管理（キャスト本人＝全操作／オーナーは閲覧のみ。書込はコントローラで本人限定）
         Route::middleware('role:cast,admin')->group(function () {
             Route::get('/actions', [NextActionController::class, 'index'])->name('cast.actions.index');
@@ -58,8 +83,14 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/{customer}/handovers', [DailyHandoverController::class, 'store'])->name('handovers.store');
                 Route::post('/{customer}/bottles', [CustomerBottleController::class, 'store'])->name('bottles.store');
                 Route::post('/{customer}/after', [AfterStatusController::class, 'update'])->name('after.update');
+                // Phase 5：担当黒服への業務連絡
+                Route::post('/{customer}/staff-request', [StaffRequestController::class, 'store'])->name('staff-request.store');
             });
             Route::post('/bottles/{bottle}/empty', [CustomerBottleController::class, 'markEmpty'])->name('cast.bottles.empty');
+
+            // Phase 5：コンディション・相談（公開先を本人が選ぶ）
+            Route::get('/support', [SupportController::class, 'index'])->name('cast.support.index');
+            Route::post('/support', [SupportController::class, 'store'])->name('cast.support.store');
         });
 
         // 黒服・店長の通常業務ページ（来店運用）。過去の顧客整理とは用途が違うので分離。

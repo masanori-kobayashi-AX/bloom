@@ -257,6 +257,23 @@
         @endif
     </div>
 
+    {{-- 担当黒服への業務連絡 --}}
+    @if($canEdit)
+    <div class="card" id="staff-request">
+        <h2>担当黒服への連絡</h2>
+        <form method="POST" action="{{ route('cast.customers.staff-request.store', $rel) }}">@csrf
+            <select name="type">
+                @foreach(['対応依頼','来店予定共有','ボトル確認','接客の注意','フォロー希望','その他'] as $t)
+                    <option value="{{ $t }}">{{ $t }}</option>
+                @endforeach
+            </select>
+            <input name="body" placeholder="担当黒服にお願い・共有したいこと" required style="margin-top:8px">
+            <button class="btn sm" type="submit" style="margin-top:8px">担当黒服に連絡</button>
+        </form>
+        <div class="notice">業務連絡です（チャットではありません）。緊急時は既存の連絡手段も併用してください。</div>
+    </div>
+    @endif
+
     {{-- キープボトル --}}
     <div class="card" id="bottles">
         <h2>キープボトル</h2>

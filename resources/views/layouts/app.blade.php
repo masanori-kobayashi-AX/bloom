@@ -81,6 +81,7 @@
             @if(auth()->user()->role())
                 <span class="role-badge">{{ auth()->user()->role()->label() }}</span>
             @endif
+            <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();" title="ログアウト" style="margin-left:10px;font-size:18px;text-decoration:none">↩︎</a>
         </div>
     </header>
 @endauth
@@ -110,8 +111,8 @@
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><span class="ic">🏠</span>ホーム</a>
             <a href="{{ route('staff.work.index') }}" class="{{ request()->routeIs('staff.work.*') || request()->routeIs('staff.plans') || request()->routeIs('staff.visits.*') ? 'active' : '' }}"><span class="ic">🍾</span>来店</a>
             <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><span class="ic">📊</span>集計</a>
-            <a href="{{ route('admin.accounts.index') }}" class="{{ request()->routeIs('admin.*') ? 'active' : '' }}"><span class="ic">👥</span>管理</a>
-            <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
+            <a href="{{ route('inbox.index') }}" class="{{ request()->routeIs('inbox.*') ? 'active' : '' }}"><span class="ic">📥</span>受信箱</a>
+            <a href="{{ route('admin.accounts.index') }}" class="{{ request()->routeIs('admin.*') || request()->routeIs('manager.announcements.*') ? 'active' : '' }}"><span class="ic">👥</span>管理</a>
         </nav>
     @elseif($r && $r->value === 'staff')
         <nav class="nav">
@@ -119,7 +120,8 @@
             <a href="{{ route('staff.plans') }}" class="{{ request()->routeIs('staff.plans') ? 'active' : '' }}"><span class="ic">📅</span>予定</a>
             <a href="{{ route('staff.search') }}" class="{{ request()->routeIs('staff.search') ? 'active' : '' }}"><span class="ic">🔍</span>検索</a>
             <a href="{{ route('staff.after') }}" class="{{ request()->routeIs('staff.after') ? 'active' : '' }}"><span class="ic">🌙</span>アフター</a>
-            <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
+            <a href="{{ route('inbox.index') }}" class="{{ request()->routeIs('inbox.*') ? 'active' : '' }}"><span class="ic">📥</span>受信箱</a>
+            <a href="{{ route('announcements.index') }}" class="{{ request()->routeIs('announcements.*') ? 'active' : '' }}"><span class="ic">📣</span>お知らせ</a>
         </nav>
     @elseif($r && $r->value === 'cast')
         <nav class="nav">
@@ -127,7 +129,8 @@
             <a href="{{ route('cast.customers.index') }}" class="{{ request()->routeIs('cast.customers.*') ? 'active' : '' }}"><span class="ic">👤</span>顧客</a>
             <a href="{{ route('cast.customers.create') }}" class="{{ request()->routeIs('cast.customers.create') ? 'active' : '' }}"><span class="ic" style="font-size:26px;line-height:1.1">＋</span>追加</a>
             <a href="{{ route('cast.actions.index') }}" class="{{ request()->routeIs('cast.actions.*') ? 'active' : '' }}"><span class="ic">✓</span>アクション</a>
-            <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
+            <a href="{{ route('announcements.index') }}" class="{{ request()->routeIs('announcements.*') ? 'active' : '' }}"><span class="ic">📣</span>お知らせ</a>
+            <a href="{{ route('cast.support.index') }}" class="{{ request()->routeIs('cast.support.*') ? 'active' : '' }}"><span class="ic">💬</span>相談</a>
         </nav>
     @else
         <nav class="nav">
