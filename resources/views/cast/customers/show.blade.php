@@ -218,6 +218,116 @@
         </details>
     </div>
 
-    {{-- 来店履歴・売上（Phase 3） --}}
-    <div class="card"><p class="muted">来店履歴・ボトル・売上は Phase 3（来店運用）で表示されます。</p></div>
+    {{-- アフター見込み（来店中に申告） --}}
+    @if($canEdit)
+    <div class="card">
+        <h2>アフター見込み</h2>
+        @if($presentVisit)
+            @if($presentVisit->after_status)<div class="hl">現在：{{ $presentVisit->after_status->label() }}</div>@endif
+            <form method="POST" action="{{ route('cast.customers.after.update', $rel) }}">@csrf
+                <select name="after_status">
+                    @foreach(\App\Enums\AfterStatus::options() as $val=>$label)
+                        <option value="{{ $val }}" @selected($presentVisit->after_status?->value===$val)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <input name="after_status_note" placeholder="補足（任意）" style="margin-top:8px" value="{{ $presentVisit->after_status_note }}">
+                <button class="btn sm" type="submit" style="margin-top:8px">アフター見込みを更新</button>
+            </form>
+            <div class="notice">店長・オーナーが「誰がどのお客様とアフターか」を把握できます。</div>
+        @else
+            <p class="muted">このお客様が来店中のときに申告できます。</p>
+        @endif
+    </div>
+    @endif
+
+    {{-- 今日の申し送り（当日情報・黒服へ） --}}
+    <div class="card" id="handovers">
+        <h2>今日の申し送り（黒服へ）</h2>
+        @forelse($todayHandovers as $h)
+            <div class="hl today">{{ $h->body }}</div>
+        @empty
+            <p class="muted">今日の申し送りはありません。</p>
+        @endforelse
+        @if($canEdit)
+        <form method="POST" action="{{ route('cast.customers.handovers.store', $rel) }}" style="margin-top:10px">@csrf
+            <input name="body" placeholder="今日だけ黒服に伝えたいこと" required>
+            <button class="btn sm" type="submit" style="margin-top:8px">今日の申し送りを追加</button>
+        </form>
+        <div class="notice">「大元の共有情報（店舗共有事項）」＝ずっと有効／「今日の申し送り」＝今日限り、と使い分けます。</div>
+        @endif
+    </div>
+
+    {{-- キープボトル --}}
+    <div class="card" id="bottles">
+        <h2>キープボトル</h2>
+        @forelse($rel->customer->keptBottles as $b)
+            <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
+                <span>🍾 {{ $b->name }}@if($b->opened_on)<span class="muted" style="font-size:11px"> （{{ $b->opened_on->format('n/j') }}〜）</span>@endif</span>
+                <span style="flex:1"></span>
+                @if($canEdit)
+                <form method="POST" action="{{ route('cast.bottles.empty', $b) }}">@csrf
+                    <button class="btn sm ghost" type="submit">空き</button>
+                </form>
+                @endif
+            </div>
+        @empty
+            <p class="muted">キープボトルはありません。</p>
+        @endforelse
+        @if($canEdit)
+        <form method="POST" action="{{ route('cast.customers.bottles.store', $rel) }}" style="margin-top:10px">@csrf
+            <input name="name" placeholder="ボトル名" required>
+            <button class="btn sm" type="submit" style="margin-top:8px">ボトルを登録</button>
+        </form>
+        @endif
+    </div>
+
+    {{-- 来店予定 --}}
+    <div class="card" id="visits">
+        <h2>来店予定</h2>
+        @forelse($upcomingPlans as $p)
+            <div style="border-bottom:1px solid var(--line);padding:8px 0">
+                {{ $p->planned_date->format('n/j') }}{{ $p->planned_time ? ' '.\Illuminate\Support\Str::substr($p->planned_time,0,5) : '' }}
+                @if($p->dohan) ・同伴@endif
+                <span class="tag {{ $p->status->value==='confirmed' ? 'on' : '' }}">{{ $p->status->label() }}</span>
+                @if($p->note)<div class="muted" style="font-size:12px">{{ $p->note }}</div>@endif
+            </div>
+        @empty
+            <p class="muted">来店予定はありません。</p>
+        @endforelse
+        @if($canEdit)
+        <details style="margin-top:10px">
+            <summary style="cursor:pointer;font-weight:600">来店予定を登録</summary>
+            <form method="POST" action="{{ route('cast.customers.plans.store', $rel) }}" style="margin-top:10px">@csrf
+                <label>日付</label>
+                <input name="planned_date" type="date" required>
+                <label>時刻（任意）</label>
+                <input name="planned_time" type="time">
+                <label>人数（任意）</label>
+                <input name="party_size" type="number" min="1" inputmode="numeric">
+                <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="dohan" value="1" style="width:auto"> 同伴</label>
+                <label>ボトル（任意）</label>
+                <input name="bottle_note">
+                <label>黒服への依頼・注意（任意）</label>
+                <input name="note">
+                <button class="btn sm" type="submit" style="margin-top:10px">来店予定を登録</button>
+            </form>
+        </details>
+        @endif
+    </div>
+
+    {{-- 来店履歴 --}}
+    <div class="card">
+        <h2>来店履歴</h2>
+        @forelse($pastVisits as $v)
+            <div style="border-bottom:1px solid var(--line);padding:8px 0">
+                <strong>{{ $v->arrived_at->format('Y/n/j') }}</strong>
+                @if($v->amount) ・ ¥{{ number_format($v->amount) }}@endif
+                @if($v->nomination_type) ・ {{ $v->nomination_type->label() }}@endif
+                @if($v->is_honshimei) ・ 本指名@elseif($v->is_zainai) ・ 場内@endif
+                @if($v->after_note)<div class="muted" style="font-size:12px">{{ $v->after_note }}</div>@endif
+            </div>
+        @empty
+            <p class="muted">来店履歴はまだありません。</p>
+        @endforelse
+    </div>
 @endsection

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CastCustomerRelationship;
 use App\Models\NextAction;
+use App\Models\Visit;
 use App\Support\CustomerAccess;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +17,19 @@ class HomeController extends Controller
     {
         $user = Auth::user();
         $role = $user->role();
+
+        // 黒服の通常業務は来店中ページ。ホームは来店中一覧へ。
+        if ($user->isStaff()) {
+            return redirect()->route('staff.work.index');
+        }
+
         $data = ['user' => $user, 'role' => $role];
+
+        // 店長・オーナーのホームにも来店中一覧を出す（§来店時共有）
+        if ($user->isManager() || $user->isAdmin()) {
+            $data['presentVisits'] = Visit::with(['customer', 'primaryCast'])
+                ->present()->orderBy('arrived_at')->get();
+        }
 
         if ($user->isCast()) {
             $castId = CustomerAccess::currentCastId();

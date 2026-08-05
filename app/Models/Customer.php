@@ -35,4 +35,30 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerAlert::class);
     }
+
+    public function bottles()
+    {
+        return $this->hasMany(CustomerBottle::class);
+    }
+
+    public function visits()
+    {
+        return $this->hasMany(Visit::class);
+    }
+
+    public function visitPlans()
+    {
+        return $this->hasMany(VisitPlan::class);
+    }
+
+    public function handovers()
+    {
+        return $this->hasMany(DailyHandover::class);
+    }
+
+    /** 有効なキープボトル。 */
+    public function keptBottles()
+    {
+        return $this->hasMany(CustomerBottle::class)->where('status', 'kept');
+    }
 }

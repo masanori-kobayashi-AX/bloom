@@ -16,6 +16,12 @@
             background:var(--bg);color:var(--ink);line-height:1.6;-webkit-text-size-adjust:100%}
         a{color:var(--rose-deep);text-decoration:none}
         .wrap{max-width:640px;margin:0 auto;padding:16px;padding-bottom:96px}
+        .wrap.wide{max-width:1040px}
+        .grid-cards{display:grid;grid-template-columns:1fr;gap:12px}
+        @media(min-width:768px){.grid-cards{grid-template-columns:1fr 1fr}}
+        .after-likely{color:#b25c72;font-weight:700}
+        .hl{background:#fff8e6;border:1px solid #f0e0b0;border-radius:10px;padding:8px 10px;margin:6px 0}
+        .hl.today{background:#eef6ff;border-color:#cfe0f5}
         header.topbar{position:sticky;top:0;z-index:10;background:rgba(251,247,248,.92);
             backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
         .topbar .inner{max-width:640px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}
@@ -74,7 +80,7 @@
     </header>
 @endauth
 
-<div class="wrap">
+<div class="wrap @yield('wrapClass')">
     @if(session('status'))
         <div class="flash ok">{{ session('status') }}</div>
     @endif
@@ -97,8 +103,17 @@
     @if($r && in_array($r->value, ['manager','admin']))
         <nav class="nav">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><span class="ic">🏠</span>ホーム</a>
-            <a href="{{ route('admin.accounts.index') }}" class="{{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}"><span class="ic">👥</span>アカウント</a>
-            <a href="{{ route('admin.assignments.index') }}" class="{{ request()->routeIs('admin.assignments.*') ? 'active' : '' }}"><span class="ic">🔗</span>担当</a>
+            <a href="{{ route('staff.work.index') }}" class="{{ request()->routeIs('staff.work.*') || request()->routeIs('staff.plans') || request()->routeIs('staff.visits.*') ? 'active' : '' }}"><span class="ic">🍾</span>来店</a>
+            <a href="{{ route('staff.after') }}" class="{{ request()->routeIs('staff.after') ? 'active' : '' }}"><span class="ic">🌙</span>アフター</a>
+            <a href="{{ route('admin.accounts.index') }}" class="{{ request()->routeIs('admin.*') ? 'active' : '' }}"><span class="ic">👥</span>管理</a>
+            <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
+        </nav>
+    @elseif($r && $r->value === 'staff')
+        <nav class="nav">
+            <a href="{{ route('staff.work.index') }}" class="{{ request()->routeIs('staff.work.*') || request()->routeIs('staff.visits.*') ? 'active' : '' }}"><span class="ic">🍾</span>来店中</a>
+            <a href="{{ route('staff.plans') }}" class="{{ request()->routeIs('staff.plans') ? 'active' : '' }}"><span class="ic">📅</span>予定</a>
+            <a href="{{ route('staff.search') }}" class="{{ request()->routeIs('staff.search') ? 'active' : '' }}"><span class="ic">🔍</span>検索</a>
+            <a href="{{ route('staff.after') }}" class="{{ request()->routeIs('staff.after') ? 'active' : '' }}"><span class="ic">🌙</span>アフター</a>
             <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
         </nav>
     @elseif($r && $r->value === 'cast')

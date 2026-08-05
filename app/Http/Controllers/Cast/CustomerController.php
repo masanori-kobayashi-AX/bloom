@@ -240,7 +240,22 @@ class CustomerController extends Controller
     {
         abort_unless(CustomerAccess::canView($customer), 403);
         $rel = $customer;
-        $rel->load(['customer.alerts', 'sharedNotes', 'nextActions' => fn ($q) => $q->orderBy('completed')->orderBy('due_on'), 'statusHistories']);
+        $rel->load([
+            'customer.alerts',
+            'customer.keptBottles',
+            'sharedNotes',
+            'nextActions' => fn ($q) => $q->orderBy('completed')->orderBy('due_on'),
+            'statusHistories',
+        ]);
+
+        $today = now()->toDateString();
+        $upcomingPlans = $rel->customer->visitPlans()
+            ->whereDate('planned_date', '>=', $today)
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('planned_date')->get();
+        $todayHandovers = $rel->customer->handovers()->whereDate('for_date', $today)->latest()->get();
+        $pastVisits = $rel->customer->visits()->where('status', 'left')->orderByDesc('arrived_at')->limit(10)->get();
+        $presentVisit = $rel->customer->visits()->where('status', 'present')->latest('arrived_at')->first();
 
         $canViewPrivate = CustomerAccess::canViewPrivateNotes($rel);
         $privateNotes = $canViewPrivate ? $rel->notes()->get() : collect();
@@ -252,6 +267,10 @@ class CustomerController extends Controller
             'privateNotes' => $privateNotes,
             'statuses' => CustomerStatus::options(),
             'importances' => CustomerImportance::options(),
+            'upcomingPlans' => $upcomingPlans,
+            'todayHandovers' => $todayHandovers,
+            'pastVisits' => $pastVisits,
+            'presentVisit' => $presentVisit,
         ]);
     }
 

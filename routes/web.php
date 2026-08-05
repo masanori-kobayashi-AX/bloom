@@ -4,11 +4,17 @@ use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AssignmentController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordChangeController;
+use App\Http\Controllers\Cast\AfterStatusController;
 use App\Http\Controllers\Cast\CustomerAlertController;
+use App\Http\Controllers\Cast\CustomerBottleController;
 use App\Http\Controllers\Cast\CustomerController;
 use App\Http\Controllers\Cast\CustomerNoteController;
+use App\Http\Controllers\Cast\DailyHandoverController;
 use App\Http\Controllers\Cast\NextActionController;
+use App\Http\Controllers\Cast\VisitPlanController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Staff\VisitController;
+use App\Http\Controllers\Staff\WorkController;
 use Illuminate\Support\Facades\Route;
 
 // ---- 認証（未ログイン） -------------------------------------------------
@@ -46,7 +52,27 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/{customer}/shared-notes', [CustomerNoteController::class, 'storeShared'])->name('notes.shared');
                 Route::post('/{customer}/alerts', [CustomerAlertController::class, 'store'])->name('alerts.store');
                 Route::post('/{customer}/actions', [NextActionController::class, 'store'])->name('actions.store');
+                // Phase 3：来店予定・今日の申し送り・ボトル・アフター見込み
+                Route::post('/{customer}/plans', [VisitPlanController::class, 'store'])->name('plans.store');
+                Route::post('/{customer}/handovers', [DailyHandoverController::class, 'store'])->name('handovers.store');
+                Route::post('/{customer}/bottles', [CustomerBottleController::class, 'store'])->name('bottles.store');
+                Route::post('/{customer}/after', [AfterStatusController::class, 'update'])->name('after.update');
             });
+            Route::post('/bottles/{bottle}/empty', [CustomerBottleController::class, 'markEmpty'])->name('cast.bottles.empty');
+        });
+
+        // 黒服・店長の通常業務ページ（来店運用）。過去の顧客整理とは用途が違うので分離。
+        Route::middleware('role:staff,manager,admin')->prefix('staff')->name('staff.')->group(function () {
+            Route::get('/', [WorkController::class, 'index'])->name('work.index');
+            Route::get('/plans', [WorkController::class, 'plans'])->name('plans');
+            Route::get('/search', [WorkController::class, 'search'])->name('search');
+            Route::get('/casts', [WorkController::class, 'casts'])->name('casts');
+            Route::get('/after', [WorkController::class, 'after'])->name('after');
+            Route::post('/visits/start', [VisitController::class, 'start'])->name('visits.start');
+            Route::get('/visits/{visit}', [VisitController::class, 'show'])->name('visits.show');
+            Route::post('/visits/{visit}', [VisitController::class, 'update'])->name('visits.update');
+            Route::post('/visits/{visit}/leave', [VisitController::class, 'leave'])->name('visits.leave');
+            Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');
         });
 
         // アカウント管理・紐付け（責任者・管理者のみ）

@@ -1,0 +1,201 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\RoleKey;
+use App\Models\Cast;
+use App\Models\CastCustomerRelationship;
+use App\Models\Customer;
+use App\Models\Role;
+use App\Models\StaffProfile;
+use App\Models\Store;
+use App\Models\User;
+use App\Models\UserStoreMembership;
+use App\Models\Visit;
+use App\Models\VisitPlan;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
+
+class Phase3VisitTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Store $store;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        foreach (RoleKey::seed() as $row) {
+            Role::updateOrCreate(['key' => $row['key']], $row);
+        }
+        $this->store = Store::create(['name' => '店A', 'code' => 'a', 'timezone' => 'Asia/Tokyo', 'is_active' => true]);
+    }
+
+    private function makeUser(RoleKey $role, string $loginId): User
+    {
+        $user = User::create([
+            'name' => $loginId, 'login_id' => $loginId, 'password' => Hash::make('password'),
+            'must_change_password' => false, 'is_active' => true,
+        ]);
+        UserStoreMembership::create([
+            'store_id' => $this->store->id, 'user_id' => $user->id,
+            'role_id' => Role::where('key', $role->value)->value('id'),
+            'status' => 'active', 'joined_at' => now(),
+        ]);
+
+        return $user;
+    }
+
+    /** @return array{0:User,1:Cast} */
+    private function makeCast(string $loginId): array
+    {
+        $user = $this->makeUser(RoleKey::Cast, $loginId);
+        $cast = Cast::create(['store_id' => $this->store->id, 'user_id' => $user->id, 'display_name' => $loginId, 'status' => 'active']);
+
+        return [$user, $cast];
+    }
+
+    private function makeStaff(string $loginId): User
+    {
+        $user = $this->makeUser(RoleKey::Staff, $loginId);
+        StaffProfile::create(['store_id' => $this->store->id, 'user_id' => $user->id, 'display_name' => $loginId, 'position' => '黒服', 'status' => 'active']);
+
+        return $user;
+    }
+
+    private function makeRelationship(Cast $cast, string $name, ?string $line = null): CastCustomerRelationship
+    {
+        $customer = Customer::create(['store_id' => $this->store->id]);
+
+        return CastCustomerRelationship::create([
+            'store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id,
+            'customer_name' => $name, 'line_display_name' => $line, 'status' => 'line_only',
+        ]);
+    }
+
+    public function test_cast_creates_visit_plan_and_staff_sees_it(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+
+        $this->actingAs($cu)->post(route('cast.customers.plans.store', $rel), [
+            'planned_date' => now()->toDateString(), 'note' => 'VIP対応で',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('visit_plans', ['customer_id' => $rel->customer_id, 'cast_id' => $cast->id, 'status' => 'pending']);
+        $this->actingAs($staff)->get(route('staff.plans'))->assertOk()->assertSee('たろう');
+    }
+
+    public function test_staff_starts_visit_from_plan(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+        $plan = VisitPlan::create([
+            'store_id' => $this->store->id, 'customer_id' => $rel->customer_id, 'cast_id' => $cast->id,
+            'planned_date' => now()->toDateString(), 'status' => 'pending',
+        ]);
+
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['visit_plan_id' => $plan->id])->assertRedirect();
+
+        $visit = Visit::where('customer_id', $rel->customer_id)->first();
+        $this->assertNotNull($visit);
+        $this->assertSame('present', $visit->status->value);
+        $this->assertSame($cast->id, $visit->primary_cast_id);
+        $this->assertSame('arrived', $plan->fresh()->status->value);
+        $this->assertDatabaseHas('visit_casts', ['visit_id' => $visit->id, 'cast_id' => $cast->id, 'role' => 'nominated']);
+    }
+
+    public function test_start_visit_is_idempotent(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $rel->customer_id]);
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $rel->customer_id]);
+
+        $this->assertSame(1, Visit::where('customer_id', $rel->customer_id)->present()->count());
+    }
+
+    public function test_staff_leaves_visit_and_records_sales(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $rel->customer_id]);
+        $visit = Visit::where('customer_id', $rel->customer_id)->first();
+
+        $this->actingAs($staff)->post(route('staff.visits.leave', $visit), [
+            'amount' => 50000, 'nomination_type' => 'honshimei', 'is_honshimei' => 1,
+        ])->assertRedirect(route('staff.work.index'));
+
+        $visit->refresh();
+        $this->assertSame('left', $visit->status->value);
+        $this->assertSame(50000, $visit->amount);
+        $this->assertTrue($visit->is_honshimei);
+        $this->assertDatabaseHas('sales_records', ['visit_id' => $visit->id, 'amount' => 50000]);
+    }
+
+    public function test_daily_handover_shows_on_staff_work(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+
+        $this->actingAs($cu)->post(route('cast.customers.handovers.store', $rel), ['body' => 'ボトル入れてくれそう']);
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $rel->customer_id]);
+
+        $this->actingAs($staff)->get(route('staff.work.index'))->assertOk()->assertSee('ボトル入れてくれそう');
+    }
+
+    public function test_shared_note_shows_on_staff_work_as_base_info(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+
+        $this->actingAs($cu)->post(route('cast.customers.notes.shared', $rel), ['body' => '通されると喜ぶ']);
+        // 指名キャスト付きで来店開始（大元共有はそのキャストの関係から取得）
+        $plan = VisitPlan::create(['store_id' => $this->store->id, 'customer_id' => $rel->customer_id, 'cast_id' => $cast->id, 'planned_date' => now()->toDateString(), 'status' => 'pending']);
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['visit_plan_id' => $plan->id]);
+
+        $this->actingAs($staff)->get(route('staff.work.index'))->assertOk()->assertSee('通されると喜ぶ');
+    }
+
+    public function test_after_status_flow_and_store_management(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $rel->customer_id]);
+        $this->actingAs($cu)->post(route('cast.customers.after.update', $rel), ['after_status' => 'likely'])->assertRedirect();
+
+        $visit = Visit::where('customer_id', $rel->customer_id)->first();
+        $this->assertSame('likely', $visit->after_status->value);
+        $this->assertSame($cast->id, $visit->primary_cast_id); // 誰が行くかが紐づく
+
+        // 店側のアフター管理に「キャスト×お客様」が出る
+        $this->actingAs($manager)->get(route('staff.after'))->assertOk()->assertSee('yui')->assertSee('たろう');
+    }
+
+    public function test_cast_cannot_access_staff_area(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $this->actingAs($cu)->get(route('staff.work.index'))->assertForbidden();
+    }
+
+    public function test_staff_search_finds_by_bottle_name(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro');
+        $this->actingAs($cu)->post(route('cast.customers.bottles.store', $rel), ['name' => '山崎12年']);
+
+        $this->actingAs($staff)->get(route('staff.search', ['q' => '山崎']))->assertOk()->assertSee('たろう');
+    }
+}
