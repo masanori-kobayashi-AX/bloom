@@ -15,8 +15,11 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate
 php artisan db:seed          # 初期ロール・店舗(ラフテル)・サンプルアカウント
+php artisan db:seed --class="Database\Seeders\TrialSeeder"  # 試験運用用サンプルデータ（任意）
 php artisan serve
 ```
+
+本番デプロイ・バックアップ・復元手順は [docs/DEPLOY.md](docs/DEPLOY.md) を参照。
 
 ### 開発用シードアカウント（パスワードはすべて `password`）
 | ログインID | 役割 |
@@ -36,13 +39,13 @@ php artisan serve
 
 全クエリは `store_id` スコープを強制（`App\Models\Concerns\BelongsToStore`）。認可はサーバー側で実施（`role` ミドルウェア）。
 
-## 実装フェーズ
+## 実装フェーズ（MVP 完了）
 - [x] **Phase 1：基盤** — 認証（初回PW変更・失敗ロック）／ロール権限／店舗／キャスト・黒服／担当紐付け／アカウント停止（退店即停止）／監査ログ・ログイン履歴
-- [ ] Phase 2：キャスト顧客管理
-- [ ] Phase 3：来店運用（黒服タブレット）
-- [ ] Phase 4：ダッシュボード
-- [ ] Phase 5：お知らせ・相談
-- [ ] Phase 6：テスト運用改善
+- [x] **Phase 2：キャスト顧客管理** — 顧客CRUD／メモ公開範囲分離／重大注意／次アクション／名寄せ候補
+- [x] **Phase 3：来店運用** — 来店予定・来店中・退店処理・ボトル・黒服ページ（大元共有／今日の申し送り）・アフター管理
+- [x] **Phase 4：ダッシュボード** — 店舗全体／キャスト別／顧客資産（単純比較で評価しない）
+- [x] **Phase 5：お知らせ・相談** — 配信／既読／黒服・責任者相談（公開先選択）／業務連絡
+- [x] **Phase 6：試験運用・本番化準備** — 権限漏れ総点検／試験データ／デプロイ・バックアップ手順
 
 ## テスト
 ```bash
