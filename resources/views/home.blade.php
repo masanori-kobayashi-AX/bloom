@@ -18,8 +18,36 @@
             </div>
         </div>
 
+        <div class="stat-grid" style="margin:8px 0">
+            <div class="stat"><div class="stat-num">{{ $cast['newLineThisMonth'] }}</div><div class="stat-label">今月の新規LINE</div></div>
+            <div class="stat"><div class="stat-num">{{ $cast['visitedThisMonth'] }}</div><div class="stat-label">今月の来店顧客</div></div>
+            <div class="stat"><div class="stat-num">{{ $cast['honshimeiThisMonth'] }}</div><div class="stat-label">今月の本指名</div></div>
+            <div class="stat"><div class="stat-num">{{ $cast['importantNotVisited']->count() }}</div><div class="stat-label">未来店の重要顧客</div></div>
+        </div>
+
         @if($cast['overdueActions'] > 0)
             <div class="flash err">期限が過ぎたアクションが {{ $cast['overdueActions'] }} 件あります。連絡を忘れていないか確認しましょう。</div>
+        @endif
+
+        {{-- 次に何をすべきか（気づき。責める表現・順位付けはしない） --}}
+        @if($cast['importantNotVisited']->isNotEmpty() || $cast['longAbsent']->isNotEmpty())
+        <div class="card">
+            <h2>気づき</h2>
+            @if($cast['importantNotVisited']->isNotEmpty())
+                <div style="padding:6px 0">💡 今月まだ来店していない重要顧客が <strong>{{ $cast['importantNotVisited']->count() }}名</strong> います。
+                    @foreach($cast['importantNotVisited']->take(3) as $r)
+                        <a href="{{ route('cast.customers.show', $r) }}" class="tag" style="margin:2px">{{ $r->customer_name }}</a>
+                    @endforeach
+                </div>
+            @endif
+            @if($cast['longAbsent']->isNotEmpty())
+                <div style="padding:6px 0">🕊 前回来店から30日以上の顧客が <strong>{{ $cast['longAbsent']->count() }}名</strong> います。そろそろ連絡してみては。
+                    @foreach($cast['longAbsent']->take(3) as $r)
+                        <a href="{{ route('cast.customers.show', $r) }}" class="tag" style="margin:2px">{{ $r->customer_name }}</a>
+                    @endforeach
+                </div>
+            @endif
+        </div>
         @endif
 
         <div class="card">
@@ -83,8 +111,8 @@
             </div>
         </div>
         <div class="card">
-            <h2>店舗全体の集計</h2>
-            <p class="muted">在籍数・来店・本指名転換などの指標は Phase 4 でここに表示されます。</p>
+            <div class="row"><h2 style="margin:0">店舗全体の集計</h2><span style="flex:1"></span><a class="btn sm" href="{{ route('dashboard') }}">📊 ダッシュボードを開く</a></div>
+            <p class="muted">在籍数・来店・場内/本指名・売上・キャスト別・顧客資産をまとめて確認できます。</p>
         </div>
     @else
         <div class="card">

@@ -124,12 +124,14 @@ class WorkController extends Controller
             $casts = \App\Models\Cast::where('status', 'active')->orderBy('display_name')->get();
         }
 
-        // 各キャストの当月ざっくり集計
+        // 各キャストの当月ざっくり集計（§5-10-D）
         $monthStart = now()->startOfMonth();
         $rows = $casts->map(function ($cast) use ($monthStart) {
             return [
                 'cast' => $cast,
                 'customers' => CastCustomerRelationship::where('cast_id', $cast->id)->count(),
+                'visits' => Visit::where('primary_cast_id', $cast->id)->where('arrived_at', '>=', $monthStart)->count(),
+                'honshimei' => Visit::where('primary_cast_id', $cast->id)->where('arrived_at', '>=', $monthStart)->where('is_honshimei', true)->count(),
                 'openShared' => CustomerSharedNote::where('cast_id', $cast->id)->where('created_at', '>=', $monthStart)->count(),
             ];
         });

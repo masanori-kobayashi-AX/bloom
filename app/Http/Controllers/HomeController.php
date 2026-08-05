@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CastCustomerRelationship;
 use App\Models\NextAction;
 use App\Models\Visit;
+use App\Services\MetricsService;
 use App\Support\CustomerAccess;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class HomeController extends Controller
 {
-    public function index()
+    public function index(MetricsService $metrics)
     {
         $user = Auth::user();
         $role = $user->role();
@@ -47,6 +48,8 @@ class HomeController extends Controller
                 'recent' => CastCustomerRelationship::where('cast_id', $castId)
                     ->latest()->limit(5)->get(),
             ];
+            // §5-2 今月メトリクス（新規LINE・来店・本指名・未来店の重要顧客・長期未来店）
+            $data['cast'] = array_merge($data['cast'], $metrics->castHome($castId));
         }
 
         return view('home', $data);

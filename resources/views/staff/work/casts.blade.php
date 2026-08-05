@@ -15,12 +15,14 @@
         @else
         <div style="overflow-x:auto">
         <table>
-            <thead><tr><th>キャスト</th><th>登録顧客</th><th>今月の共有</th></tr></thead>
+            <thead><tr><th>キャスト</th><th>登録顧客</th><th>今月の来店</th><th>今月の本指名</th><th>今月の共有</th></tr></thead>
             <tbody>
             @foreach($rows as $row)
                 <tr>
                     <td>{{ $row['cast']->display_name }}</td>
                     <td>{{ $row['customers'] }}</td>
+                    <td>{{ $row['visits'] }}</td>
+                    <td>{{ $row['honshimei'] }}</td>
                     <td>{{ $row['openShared'] }}</td>
                 </tr>
             @endforeach

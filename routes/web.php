@@ -13,6 +13,7 @@ use App\Http\Controllers\Cast\DailyHandoverController;
 use App\Http\Controllers\Cast\NextActionController;
 use App\Http\Controllers\Cast\VisitPlanController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Manager\DashboardController;
 use App\Http\Controllers\Staff\VisitController;
 use App\Http\Controllers\Staff\WorkController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/visits/{visit}', [VisitController::class, 'update'])->name('visits.update');
             Route::post('/visits/{visit}/leave', [VisitController::class, 'leave'])->name('visits.leave');
             Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');
+        });
+
+        // 集計ダッシュボード（責任者・管理者のみ）
+        Route::middleware('role:manager,admin')->group(function () {
+            Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         });
 
         // アカウント管理・紐付け（責任者・管理者のみ）

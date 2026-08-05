@@ -22,6 +22,11 @@
         .after-likely{color:#b25c72;font-weight:700}
         .hl{background:#fff8e6;border:1px solid #f0e0b0;border-radius:10px;padding:8px 10px;margin:6px 0}
         .hl.today{background:#eef6ff;border-color:#cfe0f5}
+        .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+        @media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+        .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+        .stat-num{font-size:24px;font-weight:700;color:var(--ink)}
+        .stat-label{font-size:12px;color:var(--muted);margin-top:2px}
         header.topbar{position:sticky;top:0;z-index:10;background:rgba(251,247,248,.92);
             backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
         .topbar .inner{max-width:640px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}
@@ -104,7 +109,7 @@
         <nav class="nav">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}"><span class="ic">🏠</span>ホーム</a>
             <a href="{{ route('staff.work.index') }}" class="{{ request()->routeIs('staff.work.*') || request()->routeIs('staff.plans') || request()->routeIs('staff.visits.*') ? 'active' : '' }}"><span class="ic">🍾</span>来店</a>
-            <a href="{{ route('staff.after') }}" class="{{ request()->routeIs('staff.after') ? 'active' : '' }}"><span class="ic">🌙</span>アフター</a>
+            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><span class="ic">📊</span>集計</a>
             <a href="{{ route('admin.accounts.index') }}" class="{{ request()->routeIs('admin.*') ? 'active' : '' }}"><span class="ic">👥</span>管理</a>
             <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();"><span class="ic">↩︎</span>ログアウト</a>
         </nav>
