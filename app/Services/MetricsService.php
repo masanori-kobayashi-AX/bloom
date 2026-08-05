@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Cast;
 use App\Models\CastCustomerRelationship;
-use App\Models\SalesRecord;
 use App\Models\Visit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -40,7 +39,8 @@ class MetricsService
             'honshimeiVisits' => (clone $visitsThisMonth)->where('is_honshimei', true)->count(),
             'nominatedCustomers' => CastCustomerRelationship::whereIn('status', ['zainai', 'honshimei', 'continuing', 'important'])->distinct()->count('customer_id'),
             'dormantCustomers' => CastCustomerRelationship::where('status', 'dormant')->count(),
-            'totalSales' => (int) SalesRecord::whereBetween('recorded_at', [$this->monthStart, $this->monthEnd])->sum('amount'),
+            // 売上は来店(visits)の金額を正とする（退店処理で必ず入る単一の源）
+            'totalSales' => (int) (clone $visitsThisMonth)->sum('amount'),
         ];
     }
 
@@ -55,10 +55,10 @@ class MetricsService
             $honshimei = $rels->where('status', 'honshimei')->count();
             $zainai = $rels->where('status', 'zainai')->count();
 
-            $sales = (int) SalesRecord::where('cast_id', $cast->id)
-                ->whereBetween('recorded_at', [$this->monthStart, $this->monthEnd])->sum('amount');
-            $visits = Visit::where('primary_cast_id', $cast->id)
-                ->whereBetween('arrived_at', [$this->monthStart, $this->monthEnd])->count();
+            $visitsQ = Visit::where('primary_cast_id', $cast->id)
+                ->whereBetween('arrived_at', [$this->monthStart, $this->monthEnd]);
+            $sales = (int) (clone $visitsQ)->sum('amount');
+            $visits = (clone $visitsQ)->count();
 
             return [
                 'cast' => $cast,
@@ -110,8 +110,9 @@ class MetricsService
             })
             ->take(20);
 
-        // 高売上顧客（累計）
-        $topCustomers = SalesRecord::query()
+        // 高売上顧客（累計・来店金額ベース）
+        $topCustomers = Visit::query()
+            ->whereNotNull('amount')
             ->selectRaw('customer_id, sum(amount) as total')
             ->groupBy('customer_id')
             ->orderByDesc('total')

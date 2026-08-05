@@ -89,12 +89,16 @@ class WorkController extends Controller
     /** 顧客検索（名前・LINE名・旧LINE名・ボトル名・指名キャスト） */
     public function search(Request $request)
     {
+        $user = Auth::user();
         $q = trim((string) $request->input('q', ''));
         $results = collect();
+        // 黒服は個人情報保護のため、検索範囲を「本日来店・来店予定・担当キャスト関連」に限定。
+        // 全顧客検索は店長・オーナーのみ。
+        $limited = $user->isStaff();
 
         if ($q !== '') {
             $like = '%' . $q . '%';
-            $results = CastCustomerRelationship::with(['customer.keptBottles', 'cast'])
+            $query = CastCustomerRelationship::with(['customer.keptBottles', 'cast'])
                 ->where(function ($sub) use ($like) {
                     $sub->where('customer_name', 'like', $like)
                         ->orWhere('line_display_name', 'like', $like)
@@ -104,11 +108,34 @@ class WorkController extends Controller
                                 ->orWhereHas('aliases', fn ($a) => $a->where('value', 'like', $like))
                                 ->orWhereHas('bottles', fn ($b) => $b->where('name', 'like', $like));
                         });
-                })
-                ->limit(50)->get();
+                });
+
+            if ($limited) {
+                $query->whereIn('customer_id', $this->staffScopedCustomerIds($user));
+            }
+
+            $results = $query->limit(50)->get();
         }
 
-        return view('staff.work.search', compact('q', 'results'));
+        return view('staff.work.search', compact('q', 'results', 'limited'));
+    }
+
+    /** 黒服が閲覧してよい顧客ID（本日来店・来店予定・担当キャストの顧客）。 */
+    private function staffScopedCustomerIds($user): \Illuminate\Support\Collection
+    {
+        $today = now()->toDateString();
+
+        $todayVisits = Visit::where(fn ($q) => $q->whereDate('arrived_at', $today)->orWhere('status', 'present'))->pluck('customer_id');
+        $upcoming = VisitPlan::whereDate('planned_date', '>=', $today)->where('status', '!=', 'cancelled')->pluck('customer_id');
+
+        $staff = StaffProfile::where('user_id', $user->id)->first();
+        $assignedCustomers = collect();
+        if ($staff) {
+            $castIds = $staff->assignedCasts()->pluck('casts.id');
+            $assignedCustomers = CastCustomerRelationship::whereIn('cast_id', $castIds)->pluck('customer_id');
+        }
+
+        return $todayVisits->merge($upcoming)->merge($assignedCustomers)->unique()->values();
     }
 
     /** 担当キャスト一覧（黒服＝自分の担当／店長＝全キャスト） */

@@ -27,6 +27,27 @@
         .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
         .stat-num{font-size:24px;font-weight:700;color:var(--ink)}
         .stat-label{font-size:12px;color:var(--muted);margin-top:2px}
+        /* メモの2チャンネル（色で間違い防止）＋重大注意 */
+        .ch{border-radius:16px;padding:16px;margin:12px 0;border:1px solid}
+        .ch h2{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:6px}
+        .ch-private{background:#fff2f6;border-color:#f0cdd8}
+        .ch-private h2{color:var(--rose-deep)}
+        .ch-shared{background:#eef6ff;border-color:#cfe0f5}
+        .ch-shared h2{color:#2f6bb0}
+        .ch-danger{background:#fdeeeb;border-color:#f0c4bb}
+        .ch-danger h2{color:var(--warn)}
+        .ch .item{background:rgba(255,255,255,.7);border-radius:10px;padding:8px 10px;margin:6px 0}
+        /* 進捗バー（目標管理） */
+        .bar{height:12px;background:#efe6ea;border-radius:999px;overflow:hidden}
+        .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--rose),var(--gold));border-radius:999px}
+        /* 顧客カード上部の判断サマリ */
+        .summary th{width:38%;color:var(--muted);font-weight:600;font-size:12px;padding:6px 8px}
+        .summary td{padding:6px 8px;font-weight:600}
+        details.sec > summary{cursor:pointer;font-weight:700;padding:14px 2px;list-style:none;display:flex;align-items:center;gap:8px}
+        details.sec > summary::-webkit-details-marker{display:none}
+        details.sec > summary::before{content:'▸';color:var(--muted);transition:transform .15s}
+        details.sec[open] > summary::before{transform:rotate(90deg)}
+        details.sec{border-top:1px solid var(--line)}
         header.topbar{position:sticky;top:0;z-index:10;background:rgba(251,247,248,.92);
             backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
         .topbar .inner{max-width:640px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}

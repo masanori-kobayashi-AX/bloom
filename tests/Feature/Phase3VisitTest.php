@@ -189,13 +189,27 @@ class Phase3VisitTest extends TestCase
         $this->actingAs($cu)->get(route('staff.work.index'))->assertForbidden();
     }
 
-    public function test_staff_search_finds_by_bottle_name(): void
+    public function test_staff_search_finds_by_bottle_name_within_scope(): void
     {
         [$cu, $cast] = $this->makeCast('yui');
         $rel = $this->makeRelationship($cast, 'たろう');
         $staff = $this->makeStaff('kuro');
+        // 黒服の検索は担当キャスト関連等に限定されるため、担当を紐付ける
+        $staffProfile = \App\Models\StaffProfile::where('user_id', $staff->id)->first();
+        \App\Models\CastStaffAssignment::create(['store_id' => $this->store->id, 'cast_id' => $cast->id, 'staff_id' => $staffProfile->id, 'assigned_at' => now()]);
         $this->actingAs($cu)->post(route('cast.customers.bottles.store', $rel), ['name' => '山崎12年']);
 
         $this->actingAs($staff)->get(route('staff.search', ['q' => '山崎']))->assertOk()->assertSee('たろう');
+    }
+
+    public function test_staff_search_is_scoped_away_from_unrelated_customers(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $rel = $this->makeRelationship($cast, 'たろう');
+        $staff = $this->makeStaff('kuro'); // 担当紐付けなし・来店なし
+        $this->actingAs($cu)->post(route('cast.customers.bottles.store', $rel), ['name' => '山崎12年']);
+
+        // 担当外・来店予定なしの顧客は黒服の検索に出ない
+        $this->actingAs($staff)->get(route('staff.search', ['q' => '山崎']))->assertOk()->assertDontSee('たろう');
     }
 }

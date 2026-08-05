@@ -36,6 +36,7 @@ class HomeController extends Controller
             $castId = CustomerAccess::currentCastId();
             $today = now()->toDateString();
 
+            $data['castName'] = $user->castProfile?->display_name ?? $user->name;
             $data['cast'] = [
                 'customerCount' => CastCustomerRelationship::where('cast_id', $castId)->count(),
                 'openActions' => NextAction::where('cast_id', $castId)->where('completed', false)->count(),

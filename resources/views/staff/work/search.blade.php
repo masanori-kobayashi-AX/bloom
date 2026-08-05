@@ -12,6 +12,9 @@
     <form method="GET" action="{{ route('staff.search') }}" style="margin:12px 0">
         <input name="q" value="{{ $q }}" placeholder="顧客名・LINE名・旧LINE名・ボトル名・指名キャストで検索" autofocus inputmode="search">
     </form>
+    @if($limited ?? false)
+        <div class="notice" style="margin-top:0">個人情報保護のため、検索は「本日来店・来店予定・担当キャストの顧客」に限定されています。全顧客の検索は店長にご依頼ください。</div>
+    @endif
 
     @if($q !== '' && $results->isEmpty())
         <div class="card"><p class="muted">「{{ $q }}」に一致する顧客が見つかりません。</p></div>

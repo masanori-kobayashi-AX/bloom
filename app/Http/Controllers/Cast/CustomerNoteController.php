@@ -37,7 +37,23 @@ class CustomerNoteController extends Controller
         $data = $request->validate([
             'category' => ['nullable', 'string', 'max:50'],
             'body' => ['required', 'string', 'max:2000'],
+            'today_only' => ['nullable', 'boolean'],
         ]);
+
+        // 「今日だけ」＝当日の申し送り（daily_handovers）として登録
+        if (! empty($data['today_only'])) {
+            $customer->customer->handovers()->create([
+                'store_id' => $customer->store_id,
+                'cast_id' => $customer->cast_id,
+                'relationship_id' => $customer->id,
+                'for_date' => now()->toDateString(),
+                'body' => $data['body'],
+            ]);
+
+            return redirect()->route('cast.customers.show', $customer)
+                ->with('status', '今日の申し送りとして共有しました。')
+                ->withFragment('share');
+        }
 
         $customer->sharedNotes()->create([
             'store_id' => $customer->store_id,
@@ -48,7 +64,7 @@ class CustomerNoteController extends Controller
         ]);
 
         return redirect()->route('cast.customers.show', $customer)
-            ->with('status', '店舗共有事項を追加しました。担当黒服・店長が確認できます。')
-            ->withFragment('shared-notes');
+            ->with('status', 'お店と共有しました。担当黒服・店長が確認できます。')
+            ->withFragment('share');
     }
 }

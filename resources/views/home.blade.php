@@ -2,25 +2,15 @@
 @section('title', 'ホーム')
 
 @section('content')
-    <h1>こんにちは、{{ $user->name }}さん</h1>
-
     @php($roleValue = $role?->value)
+    <h1>こんにちは、{{ $roleValue === 'cast' ? ($castName ?? $user->name) : $user->name }}さん</h1>
 
     @if($roleValue === 'cast')
-        <div class="row" style="gap:10px">
-            <div class="card" style="flex:1;text-align:center;margin:8px 0">
-                <div style="font-size:28px;font-weight:700">{{ $cast['customerCount'] }}</div>
-                <div class="muted" style="font-size:12px">登録顧客</div>
-            </div>
-            <div class="card" style="flex:1;text-align:center;margin:8px 0">
-                <div style="font-size:28px;font-weight:700;color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div>
-                <div class="muted" style="font-size:12px">未対応アクション</div>
-            </div>
-        </div>
-
         <div class="stat-grid" style="margin:8px 0">
+            <div class="stat"><div class="stat-num">{{ $cast['customerCount'] }}</div><div class="stat-label">登録顧客</div></div>
+            <div class="stat"><div class="stat-num" style="color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div><div class="stat-label">未対応アクション</div></div>
             <div class="stat"><div class="stat-num">{{ $cast['newLineThisMonth'] }}</div><div class="stat-label">今月の新規LINE</div></div>
-            <div class="stat"><div class="stat-num">{{ $cast['visitedThisMonth'] }}</div><div class="stat-label">今月の来店顧客</div></div>
+            <div class="stat"><div class="stat-num">{{ $cast['visitedThisMonth'] }}</div><div class="stat-label">今月の来店</div></div>
             <div class="stat"><div class="stat-num">{{ $cast['honshimeiThisMonth'] }}</div><div class="stat-label">今月の本指名</div></div>
             <div class="stat"><div class="stat-num">{{ $cast['importantNotVisited']->count() }}</div><div class="stat-label">未来店の重要顧客</div></div>
         </div>
