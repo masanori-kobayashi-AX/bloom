@@ -173,5 +173,21 @@
     @endif
     <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display:none">@csrf</form>
 @endauth
+
+<script>
+// 音声入力補助（店内は騒がしいので補助扱い）。data-voice に対象inputのidを指定。
+function bloomVoice(btn){
+    var target=document.getElementById(btn.getAttribute('data-voice'));
+    if(!target) return;
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){alert('この端末は音声入力に対応していません。キーボードで入力してください。');return;}
+    var r=new SR(); r.lang='ja-JP'; r.interimResults=false; r.maxAlternatives=1;
+    var orig=btn.textContent; btn.textContent='●'; btn.style.color='#c1462f';
+    r.onresult=function(e){var t=e.results[0][0].transcript; target.value=(target.value?target.value+' ':'')+t; target.focus();};
+    r.onerror=function(){};
+    r.onend=function(){btn.textContent=orig; btn.style.color='';};
+    try{r.start();}catch(e){btn.textContent=orig;}
+}
+</script>
 </body>
 </html>

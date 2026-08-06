@@ -75,6 +75,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/{customer}/edit', [CustomerController::class, 'edit'])->name('edit');
                 Route::put('/{customer}', [CustomerController::class, 'update'])->name('update');
                 Route::post('/{customer}/status', [CustomerController::class, 'updateStatus'])->name('status');
+                Route::post('/{customer}/close-consult', [CustomerController::class, 'closeConsult'])->name('close-consult');
                 Route::post('/{customer}/notes', [CustomerNoteController::class, 'storePrivate'])->name('notes.private');
                 Route::post('/{customer}/shared-notes', [CustomerNoteController::class, 'storeShared'])->name('notes.shared');
                 Route::post('/{customer}/alerts', [CustomerAlertController::class, 'store'])->name('alerts.store');
@@ -111,6 +112,8 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/visits/{visit}', [VisitController::class, 'update'])->name('visits.update');
             Route::post('/visits/{visit}/leave', [VisitController::class, 'leave'])->name('visits.leave');
             Route::post('/visits/{visit}/cancel', [VisitController::class, 'cancel'])->name('visits.cancel');
+            Route::post('/visits/{visit}/casts', [VisitController::class, 'addCast'])->name('visits.casts.add');
+            Route::delete('/visits/{visit}/casts/{visitCast}', [VisitController::class, 'removeCast'])->name('visits.casts.remove');
             Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');
         });
 

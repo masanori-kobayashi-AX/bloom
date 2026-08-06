@@ -34,6 +34,35 @@
         @endif
     </div>
 
+    {{-- この席のキャスト（複数対応：指名＋ヘルプ） --}}
+    <div class="card">
+        <h2>この席のキャスト</h2>
+        <div class="row" style="flex-wrap:wrap;gap:6px">
+            @forelse($visit->visitCasts as $vc)
+                <span class="tag" style="padding:6px 10px">
+                    {{ $vc->cast?->display_name }}
+                    <span class="muted" style="font-size:11px">（{{ $vc->cast_id === $visit->primary_cast_id ? '指名' : ($vc->role === 'help' ? 'ヘルプ' : $vc->role) }}）</span>
+                    @if($visit->status->value === 'present' && $vc->cast_id !== $visit->primary_cast_id)
+                        <form method="POST" action="{{ route('staff.visits.casts.remove', [$visit, $vc]) }}" style="display:inline" onsubmit="return confirm('このキャストを外しますか？')">@csrf @method('DELETE')
+                            <button type="submit" style="border:none;background:none;color:var(--warn);cursor:pointer">×</button>
+                        </form>
+                    @endif
+                </span>
+            @empty
+                <span class="muted">まだ登録がありません。</span>
+            @endforelse
+        </div>
+        @if($visit->status->value === 'present')
+        <form method="POST" action="{{ route('staff.visits.casts.add', $visit) }}" class="row" style="gap:6px;margin-top:10px">@csrf
+            <select name="cast_id" required style="flex:1">
+                <option value="">ヘルプで付いたキャストを追加</option>
+                @foreach($activeCasts as $ac)<option value="{{ $ac->id }}">{{ $ac->display_name }}</option>@endforeach
+            </select>
+            <button class="btn sm ghost" type="submit" style="width:auto">追加</button>
+        </form>
+        @endif
+    </div>
+
     {{-- 今日の申し送り --}}
     @if($handovers->isNotEmpty())
     <div class="card">
@@ -59,8 +88,10 @@
     <div class="card">
         <h2>対応メモ・席・ボトル</h2>
         <form method="POST" action="{{ route('staff.visits.update', $visit) }}">@csrf
-            <label for="seat">席</label>
-            <input id="seat" name="seat" value="{{ $visit->seat }}">
+            <div class="row" style="gap:8px">
+                <div style="flex:2"><label for="seat">席（移動したら変更）</label><input id="seat" name="seat" value="{{ $visit->seat }}"></div>
+                <div style="flex:1"><label for="party_size">人数</label><input id="party_size" name="party_size" type="number" min="1" inputmode="numeric" value="{{ $visit->party_size }}"></div>
+            </div>
             <label for="caution">当日の注意</label>
             <input id="caution" name="caution" value="{{ $visit->caution }}">
             <label for="arrival_note">来店時メモ</label>

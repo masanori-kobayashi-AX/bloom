@@ -46,6 +46,7 @@
                     @foreach($cast['longAbsent']->take(3) as $r)
                         <a href="{{ route('cast.customers.show', $r) }}" class="tag" style="margin:2px">{{ $r->customer_name }}（前回{{ $r->last_visit_days }}日前）</a>
                     @endforeach
+                    <div style="margin-top:6px"><a href="{{ route('cast.customers.index', ['status' => '__close__']) }}" style="font-size:13px">→ 追いかけをやめるか検討（クローズ検討リスト）</a></div>
                 </div>
             @endif
         </div>

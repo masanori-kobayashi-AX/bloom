@@ -68,7 +68,10 @@
             @endforelse
             @if($canEdit)
             <form method="POST" action="{{ route('cast.customers.notes.private', $rel) }}" style="margin-top:8px">@csrf
-                <input name="body" placeholder="会話・趣味・次の話題など" required>
+                <div class="row" style="gap:6px">
+                    <input id="pv-body" name="body" placeholder="会話・趣味・次の話題など" required style="flex:1">
+                    <button type="button" class="btn sm ghost" style="width:auto" data-voice="pv-body" onclick="bloomVoice(this)" title="音声入力">🎤</button>
+                </div>
                 <button class="btn sm" type="submit" style="margin-top:8px">私だけのメモに追加</button>
             </form>
             @endif
@@ -95,7 +98,10 @@
                     <label class="chip"><input type="radio" name="category" value="{{ $cat }}" style="display:none" onchange="this.closest('.chip-row').querySelectorAll('.chip').forEach(c=>c.style.background='#fff');this.closest('.chip').style.background='#dbeafe'"> {{ $cat }}</label>
                 @endforeach
             </div>
-            <input name="body" placeholder="黒服・店長に伝えたいこと" required>
+            <div class="row" style="gap:6px">
+                <input id="sh-body" name="body" placeholder="黒服・店長に伝えたいこと" required style="flex:1">
+                <button type="button" class="btn sm ghost" style="width:auto" data-voice="sh-body" onclick="bloomVoice(this)" title="音声入力">🎤</button>
+            </div>
             <label style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:13px"><input type="checkbox" name="today_only" value="1" style="width:auto"> 今日だけの申し送りにする</label>
             <button class="btn sm" type="submit" style="background:#2f6bb0">お店と共有</button>
         </form>

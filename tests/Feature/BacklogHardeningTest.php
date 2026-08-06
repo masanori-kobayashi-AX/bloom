@@ -114,6 +114,57 @@ class BacklogHardeningTest extends TestCase
         $this->assertDatabaseHas('visit_casts', ['visit_id' => $visit->id, 'cast_id' => $cast->id, 'role' => 'nominated']);
     }
 
+    public function test_staff_can_add_help_cast_and_cannot_remove_nominated(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        [$cu2, $help] = $this->makeCast('rin');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'honshimei']);
+        $staff = $this->makeStaff('kuro');
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $customer->id, 'cast_id' => $cast->id]);
+        $visit = Visit::where('customer_id', $customer->id)->first();
+
+        // ヘルプキャスト追加
+        $this->actingAs($staff)->post(route('staff.visits.casts.add', $visit), ['cast_id' => $help->id])->assertRedirect();
+        $this->assertDatabaseHas('visit_casts', ['visit_id' => $visit->id, 'cast_id' => $help->id, 'role' => 'help']);
+
+        // 指名キャストは外せない
+        $nominated = \App\Models\VisitCast::where('visit_id', $visit->id)->where('cast_id', $cast->id)->first();
+        $this->actingAs($staff)->delete(route('staff.visits.casts.remove', [$visit, $nominated]))->assertStatus(422);
+
+        // ヘルプは外せる
+        $helpVc = \App\Models\VisitCast::where('visit_id', $visit->id)->where('cast_id', $help->id)->first();
+        $this->actingAs($staff)->delete(route('staff.visits.casts.remove', [$visit, $helpVc]))->assertRedirect();
+        $this->assertDatabaseMissing('visit_casts', ['id' => $helpVc->id]);
+    }
+
+    public function test_close_consult_creates_manager_support_request(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => 'ケンさん', 'status' => 'dormant']);
+
+        $this->actingAs($cu)->post(route('cast.customers.close-consult', $rel))->assertRedirect();
+
+        $this->assertDatabaseHas('cast_support_requests', ['cast_id' => $cast->id, 'audience' => 'manager', 'status' => 'open']);
+    }
+
+    public function test_customer_index_close_filter_and_sort(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $c1 = Customer::create(['store_id' => $this->store->id]);
+        CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $c1->id, 'cast_id' => $cast->id, 'customer_name' => '休眠さん', 'status' => 'dormant']);
+        $c2 = Customer::create(['store_id' => $this->store->id]);
+        CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $c2->id, 'cast_id' => $cast->id, 'customer_name' => '元気さん', 'status' => 'honshimei']);
+
+        // クローズ検討フィルタ：休眠は候補、本指名(来店なしだが対象外)は除外
+        $this->actingAs($cu)->get(route('cast.customers.index', ['status' => '__close__']))
+            ->assertOk()->assertSee('休眠さん')->assertDontSee('元気さん');
+
+        // ソート指定でも落ちない
+        $this->actingAs($cu)->get(route('cast.customers.index', ['sort' => 'last_visit']))->assertOk()->assertSee('休眠さん');
+    }
+
     public function test_structured_alert_stores_source_and_expiry(): void
     {
         [$cu, $cast] = $this->makeCast('yui');

@@ -92,7 +92,8 @@ class VisitController extends Controller
     public function show(Visit $visit)
     {
         $today = now()->toDateString();
-        $visit->load(['customer.keptBottles', 'customer.alerts' => fn ($q) => $q->active(), 'primaryCast', 'bottles']);
+        $visit->load(['customer.keptBottles', 'customer.alerts' => fn ($q) => $q->active(), 'primaryCast', 'bottles', 'visitCasts.cast']);
+        $activeCasts = \App\Models\Cast::where('status', 'active')->orderBy('display_name')->get();
 
         $sharedNotes = collect();
         if ($visit->primary_cast_id) {
@@ -110,7 +111,39 @@ class VisitController extends Controller
             'sharedNotes' => $sharedNotes,
             'handovers' => $handovers,
             'nominations' => NominationType::options(),
+            'activeCasts' => $activeCasts,
         ]);
+    }
+
+    /** ヘルプ等で付いたキャストを追加（複数キャスト対応）。 */
+    public function addCast(Request $request, Visit $visit): RedirectResponse
+    {
+        abort_unless($visit->store_id === CurrentStore::id(), 403);
+        abort_unless($visit->status === VisitStatus::Present, 422, '来店中のみ追加できます。');
+
+        $data = $request->validate([
+            'cast_id' => ['required', 'integer'],
+            'role' => ['nullable', 'string', 'max:20'],
+        ]);
+        $cast = \App\Models\Cast::where('id', $data['cast_id'])->where('store_id', $visit->store_id)->firstOrFail();
+
+        VisitCast::firstOrCreate(
+            ['visit_id' => $visit->id, 'cast_id' => $cast->id],
+            ['store_id' => $visit->store_id, 'role' => $data['role'] ?? 'help']
+        );
+
+        return back()->with('status', "{$cast->display_name} をこの席に追加しました。");
+    }
+
+    /** 付いたキャストを外す（指名キャストは外さない）。 */
+    public function removeCast(Visit $visit, VisitCast $visitCast): RedirectResponse
+    {
+        abort_unless($visit->store_id === CurrentStore::id() && $visitCast->visit_id === $visit->id, 403);
+        abort_if($visit->primary_cast_id && $visitCast->cast_id === $visit->primary_cast_id, 422, '指名キャストは外せません。');
+
+        $visitCast->delete();
+
+        return back()->with('status', 'キャストを外しました。');
     }
 
     /** 席・注意・来店時メモ・ボトルの更新 */
@@ -120,6 +153,7 @@ class VisitController extends Controller
 
         $data = $request->validate([
             'seat' => ['nullable', 'string', 'max:50'],
+            'party_size' => ['nullable', 'integer', 'min:1', 'max:50'],
             'caution' => ['nullable', 'string', 'max:255'],
             'arrival_note' => ['nullable', 'string', 'max:1000'],
             'bottle_name' => ['nullable', 'string', 'max:100'],
@@ -128,6 +162,7 @@ class VisitController extends Controller
         DB::transaction(function () use ($visit, $data) {
             $visit->update([
                 'seat' => $data['seat'] ?? $visit->seat,
+                'party_size' => $data['party_size'] ?? $visit->party_size,
                 'caution' => $data['caution'] ?? $visit->caution,
                 'arrival_note' => $data['arrival_note'] ?? $visit->arrival_note,
             ]);

@@ -18,7 +18,7 @@ class Visit extends Model
     protected $fillable = [
         'store_id', 'customer_id', 'visit_plan_id', 'primary_cast_id',
         'arrived_at', 'left_at', 'status', 'nomination_type', 'dohan',
-        'is_zainai', 'is_honshimei', 'seat', 'amount', 'arrival_note',
+        'is_zainai', 'is_honshimei', 'seat', 'party_size', 'amount', 'arrival_note',
         'after_note', 'caution', 'after_status', 'after_status_note',
         'created_by', 'updated_by',
     ];

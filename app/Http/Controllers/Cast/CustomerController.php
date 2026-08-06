@@ -34,9 +34,16 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $q = trim((string) $request->input('q', ''));
+        $sort = $request->input('sort', 'updated');
+        $status = $request->input('status', '');
         $castId = CustomerAccess::currentCastId();
 
+        // 各顧客の最終来店日をサブクエリで付与（ソート・表示・クローズ判定に使う）
+        $lastVisitSql = '(select max(arrived_at) from visits where visits.customer_id = cast_customer_relationships.customer_id and visits.store_id = cast_customer_relationships.store_id and visits.deleted_at is null)';
+
         $query = CastCustomerRelationship::with('customer')
+            ->select('cast_customer_relationships.*')
+            ->selectRaw($lastVisitSql . ' as last_visit_at')
             ->when($castId !== null, fn ($qq) => $qq->where('cast_id', $castId));
 
         if ($q !== '') {
@@ -52,11 +59,38 @@ class CustomerController extends Controller
             });
         }
 
-        $relationships = $query->orderByRaw('updated_at desc')->paginate(30)->withQueryString();
+        // 絞り込み：特定ステータス、または「クローズ検討」候補
+        if ($status === '__close__') {
+            $ninety = now()->subDays(90)->toDateString();
+            $sixty = now()->subDays(60)->toDateString();
+            $query->where(function ($w) use ($lastVisitSql, $ninety, $sixty) {
+                $w->whereIn('status', ['dormant', 'caution'])
+                    ->orWhereRaw("$lastVisitSql <= ?", [$ninety])
+                    ->orWhere(function ($x) use ($lastVisitSql, $sixty) {
+                        $x->whereRaw("$lastVisitSql is null")
+                            ->where('status', 'line_only')
+                            ->whereDate('line_exchanged_on', '<=', $sixty);
+                    });
+            })->where('status', '!=', 'closed');
+        } elseif ($status !== '' && array_key_exists($status, CustomerStatus::options())) {
+            $query->where('status', $status);
+        }
+
+        // 並び替え
+        match ($sort) {
+            'name' => $query->orderBy('customer_name'),
+            'last_visit' => $query->orderByRaw('last_visit_at is null desc')->orderByRaw('last_visit_at asc'),
+            'importance' => $query->orderByRaw("field(importance,'core','continuing','nurturing','light','dormant','closed')"),
+            default => $query->orderByRaw('updated_at desc'),
+        };
+
+        $relationships = $query->paginate(30)->withQueryString();
 
         return view('cast.customers.index', [
             'relationships' => $relationships,
             'q' => $q,
+            'sort' => $sort,
+            'status' => $status,
             'statuses' => CustomerStatus::options(),
         ]);
     }
@@ -340,6 +374,22 @@ class CustomerController extends Controller
         });
 
         return redirect()->route('cast.customers.show', $customer)->with('status', '顧客情報を更新しました。');
+    }
+
+    /** クローズ（追いかけをやめるか）を店長に相談する。相談は公開先=責任者で作成。 */
+    public function closeConsult(CastCustomerRelationship $customer): RedirectResponse
+    {
+        abort_unless(CustomerAccess::canEdit($customer), 403);
+
+        \App\Models\CastSupportRequest::create([
+            'store_id' => $customer->store_id,
+            'cast_id' => $customer->cast_id,
+            'audience' => 'manager',
+            'body' => "「{$customer->customer_name}」さんの対応をクローズ（終了）すべきか相談したいです。",
+            'status' => 'open',
+        ]);
+
+        return back()->with('status', "「{$customer->customer_name}」さんのクローズを店長に相談しました。");
     }
 
     public function updateStatus(Request $request, CastCustomerRelationship $customer): RedirectResponse
