@@ -169,7 +169,16 @@ class AccountController extends Controller
         $membership = UserStoreMembership::where('store_id', $storeId)
             ->where('user_id', $user->id)->firstOrFail();
 
-        DB::transaction(function () use ($user, $membership, $request, $storeId) {
+        // 安全確認が先：アフター見守り中のキャストは退店させない
+        $cast = Cast::where('user_id', $user->id)->first();
+        if ($cast && \App\Models\AfterLog::out()->where('cast_id', $cast->id)->exists()) {
+            return back()->withErrors(['suspend' => "{$user->name} はアフター見守り中です。帰宅確認を済ませてから退店処理をしてください。"]);
+        }
+
+        // 退店時に引き継ぐべき未処理（自動移管はしない：店長が手動で引き継ぐための可視化）
+        $pending = $this->pendingHandover($cast);
+
+        DB::transaction(function () use ($user, $membership, $request, $storeId, $pending) {
             $membership->update([
                 'status' => 'suspended',
                 'suspended_at' => now(),
@@ -181,13 +190,48 @@ class AccountController extends Controller
             // 退店：プロフィールを離任にし、担当を解除（一覧・ドロップダウンから外す）
             $this->closeProfiles($user);
 
+            // 全セッションを即時失効（他端末・開いたままの画面からの継続操作を防ぐ）
+            $this->killSessions($user);
+
             AuditLogger::record('account.suspend', $user, '退店（クローズ）', after: [
                 'reason' => $request->input('reason'),
+                'pending_handover' => $pending,
             ], storeId: $storeId);
         });
 
-        return redirect()->route('admin.accounts.index')
-            ->with('status', "{$user->name} を退店（クローズ）にしました。ログイン・担当・一覧から外れます（データは保持されます）。");
+        $msg = "{$user->name} を退店（クローズ）にしました。ログイン・担当・一覧から外れます（データは保持されます）。";
+        if ($pending && array_sum($pending) > 0) {
+            $parts = [];
+            if ($pending['actions'] > 0) $parts[] = "未完了アクション{$pending['actions']}件";
+            if ($pending['plans'] > 0) $parts[] = "今後の来店予定{$pending['plans']}件";
+            if ($pending['supports'] > 0) $parts[] = "未対応の相談{$pending['supports']}件";
+            $msg .= ' 引き継ぎ事項：' . implode('・', $parts) . '（自動では移りません。必要なら別キャストへ引き継いでください）。';
+        }
+
+        return redirect()->route('admin.accounts.index')->with('status', $msg);
+    }
+
+    /** 退店時に引き継ぐべき未処理の件数（自動移管はしない）。 */
+    private function pendingHandover(?Cast $cast): array
+    {
+        if (! $cast) {
+            return ['actions' => 0, 'plans' => 0, 'supports' => 0];
+        }
+        $today = now()->toDateString();
+
+        return [
+            'actions' => \App\Models\NextAction::where('cast_id', $cast->id)->where('completed', false)->count(),
+            'plans' => \App\Models\VisitPlan::where('cast_id', $cast->id)
+                ->whereDate('planned_date', '>=', $today)->where('status', '!=', 'cancelled')->count(),
+            'supports' => \App\Models\CastSupportRequest::where('cast_id', $cast->id)->where('status', '!=', 'resolved')->count(),
+        ];
+    }
+
+    /** DBセッションを全削除し、remember-meも失効させる（退店・停止の即時反映）。 */
+    private function killSessions(User $user): void
+    {
+        DB::table('sessions')->where('user_id', $user->id)->delete();
+        $user->forceFill(['remember_token' => Str::random(60)])->saveQuietly();
     }
 
     /** 退店：キャスト/黒服のプロフィールを離任にし、現在の担当紐付けを解除する。データは削除しない。 */

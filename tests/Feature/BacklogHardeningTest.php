@@ -329,6 +329,45 @@ class BacklogHardeningTest extends TestCase
         $this->assertSame(0, $staffProfile->assignedCasts()->count());
     }
 
+    public function test_after_watch_blocks_close_and_close_kills_sessions(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        // アフター見守り中は退店をブロック
+        \App\Models\AfterLog::create(['store_id' => $this->store->id, 'cast_id' => $cast->id, 'departed_at' => now(), 'status' => 'out']);
+        $this->actingAs($manager)->post(route('admin.accounts.suspend', $cu), ['reason' => '退店'])
+            ->assertSessionHasErrors('suspend');
+        $this->assertTrue((bool) $cu->fresh()->is_active); // 退店していない
+
+        // 帰宅確認を済ませればブロック解除。退店時に既存セッションを削除する
+        \App\Models\AfterLog::query()->update(['status' => 'home', 'home_reported_at' => now()]);
+        \Illuminate\Support\Facades\DB::table('sessions')->insert([
+            'id' => 'sess-yui-1', 'user_id' => $cu->id, 'ip_address' => '127.0.0.1', 'user_agent' => 'x',
+            'payload' => 'x', 'last_activity' => time(),
+        ]);
+
+        $this->actingAs($manager)->post(route('admin.accounts.suspend', $cu), ['reason' => '退店'])->assertRedirect();
+        $this->assertFalse((bool) $cu->fresh()->is_active);
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('sessions')->where('user_id', $cu->id)->count());
+    }
+
+    public function test_close_surfaces_pending_handover_items(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'honshimei']);
+        // 未完了の次アクションを作る
+        \App\Models\NextAction::create(['store_id' => $this->store->id, 'relationship_id' => $rel->id, 'cast_id' => $cast->id, 'content' => '連絡する', 'kind' => 'line_contact', 'completed' => false]);
+
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+        $this->actingAs($manager)->post(route('admin.accounts.suspend', $cu), ['reason' => '退店'])
+            ->assertRedirect();
+        // 引き継ぎ事項がメッセージに出る
+        $this->assertStringContainsString('引き継ぎ事項', session('status'));
+        $this->assertStringContainsString('未完了アクション1件', session('status'));
+    }
+
     public function test_former_cast_customers_visible_to_manager_via_former_filter(): void
     {
         [$cu, $cast] = $this->makeCast('yui');
