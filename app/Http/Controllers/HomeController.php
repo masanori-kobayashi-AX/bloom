@@ -38,6 +38,13 @@ class HomeController extends Controller
 
             $data['castName'] = $user->castProfile?->display_name ?? $user->name;
             $data['goal'] = $metrics->castProgress($castId);
+
+            // 今来ているお客様（自分が指名の来店中）→ その場ですぐメモへ
+            $presentCustomerIds = Visit::present()->where('primary_cast_id', $castId)->pluck('customer_id');
+            $data['presentNow'] = $presentCustomerIds->isNotEmpty()
+                ? CastCustomerRelationship::where('cast_id', $castId)->whereIn('customer_id', $presentCustomerIds)->get()
+                : collect();
+
             $data['cast'] = [
                 'customerCount' => CastCustomerRelationship::where('cast_id', $castId)->count(),
                 'openActions' => NextAction::where('cast_id', $castId)->where('completed', false)->count(),

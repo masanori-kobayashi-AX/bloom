@@ -6,6 +6,26 @@
     <h1>こんにちは、{{ $roleValue === 'cast' ? ($castName ?? $user->name) : $user->name }}さん</h1>
 
     @if($roleValue === 'cast')
+        {{-- 今来ているお客様（自分が指名の来店中）→ その場ですぐメモへ --}}
+        @if(($presentNow ?? collect())->isNotEmpty())
+        <div class="card" style="border-color:var(--rose)">
+            <h2>🔴 今来ているお客様</h2>
+            @foreach($presentNow as $r)
+                <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0;gap:8px">
+                    @include('partials.avatar', ['name' => $r->customer_name, 'emoji' => $r->avatar_emoji])
+                    <div style="min-width:0">
+                        <div style="font-weight:700">{{ $r->customer_name }}</div>
+                        @if($r->line_display_name)<div class="muted" style="font-size:12px">LINE: {{ $r->line_display_name }}</div>@endif
+                    </div>
+                    <span style="flex:1"></span>
+                    <a class="btn sm" href="{{ route('cast.customers.show', $r) }}#private">🌸 メモ</a>
+                    <a class="btn sm ghost" href="{{ route('cast.customers.show', $r) }}#share">💙 共有</a>
+                </div>
+            @endforeach
+            <div class="notice">来店中のうちに、会話やご要望をすぐメモしておきましょう。</div>
+        </div>
+        @endif
+
         {{-- 今月の目標と進捗（本人のための指標） --}}
         <div class="card">
             <div class="row"><h2 style="margin:0">今月の目標</h2><span style="flex:1"></span><a href="{{ route('cast.goal.edit') }}" style="font-size:13px">{{ $goal['hasGoal'] ? '変更' : '設定する' }}</a></div>
