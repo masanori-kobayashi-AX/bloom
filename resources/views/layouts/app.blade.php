@@ -17,7 +17,19 @@
         a{color:var(--rose-deep);text-decoration:none}
         .wrap{max-width:640px;margin:0 auto;padding:16px;padding-bottom:96px}
         .wrap.wide{max-width:1180px}
+        .wrap.full{max-width:100%}
         @media(min-width:900px){ .wrap.wide .grid-cards{grid-template-columns:repeat(3,1fr)} }
+        /* エクセル的な横スクロール表 */
+        .xls{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+        .xls table{border-collapse:collapse;min-width:1200px;font-size:13px}
+        .xls th,.xls td{border:1px solid var(--line);padding:8px 10px;white-space:nowrap;vertical-align:top;text-align:left}
+        .xls thead th{background:#faf5f7;position:sticky;top:0;z-index:2;color:var(--muted);font-size:12px}
+        .xls td.wrap-cell,.xls th.wrap-cell{white-space:normal;min-width:200px;max-width:320px}
+        .xls td.sticky-col,.xls th.sticky-col{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--line)}
+        .xls thead th.sticky-col{background:#faf5f7;z-index:3}
+        .xls .priv{background:#fff6f9}
+        .xls th:first-child,.xls td:first-child{min-width:64px;max-width:64px}
+        .xls th:nth-child(2),.xls td:nth-child(2){min-width:110px}
         .grid-cards{display:grid;grid-template-columns:1fr;gap:12px}
         @media(min-width:768px){.grid-cards{grid-template-columns:1fr 1fr}}
         .after-likely{color:#b25c72;font-weight:700}

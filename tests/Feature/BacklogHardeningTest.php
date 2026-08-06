@@ -165,6 +165,48 @@ class BacklogHardeningTest extends TestCase
         $this->actingAs($cu)->get(route('cast.customers.index', ['sort' => 'last_visit']))->assertOk()->assertSee('休眠さん');
     }
 
+    public function test_customer_overview_hides_private_from_manager_shows_to_admin(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'honshimei']);
+        $rel->notes()->create(['store_id' => $this->store->id, 'cast_id' => $cast->id, 'body' => 'ないしょのコメント']);
+        $rel->sharedNotes()->create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'body' => '共有メモ']);
+
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+        $admin = $this->makeUser(RoleKey::Admin, 'owner');
+
+        // オーナー：本人コメントも見える＋監査記録
+        $this->actingAs($admin)->get(route('admin.customers'))->assertOk()
+            ->assertSee('ないしょのコメント')->assertSee('共有メモ');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'view.private_overview']);
+
+        // 店長：本人コメントは見えない／共有は見える
+        $this->actingAs($manager)->get(route('admin.customers'))->assertOk()
+            ->assertDontSee('ないしょのコメント')->assertSee('共有メモ');
+
+        // キャストは全体一覧に入れない
+        $this->actingAs($cu)->get(route('admin.customers'))->assertForbidden();
+    }
+
+    public function test_owner_can_edit_overview_cell_manager_cannot(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'line_only']);
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+        $admin = $this->makeUser(RoleKey::Admin, 'owner');
+
+        // オーナー：状況をセル編集できる＋監査
+        $this->actingAs($admin)->post(route('admin.customers.cell', $rel), ['field' => 'status', 'value' => 'honshimei'])->assertRedirect();
+        $this->assertSame('honshimei', $rel->fresh()->status->value);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'overview.edit', 'auditable_id' => $rel->id]);
+
+        // 店長：編集は不可（閲覧のみ）
+        $this->actingAs($manager)->post(route('admin.customers.cell', $rel), ['field' => 'status', 'value' => 'dormant'])->assertForbidden();
+        $this->assertSame('honshimei', $rel->fresh()->status->value);
+    }
+
     public function test_structured_alert_stores_source_and_expiry(): void
     {
         [$cu, $cast] = $this->makeCast('yui');

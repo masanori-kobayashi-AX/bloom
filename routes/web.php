@@ -117,9 +117,11 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');
         });
 
-        // 集計ダッシュボード（責任者・管理者のみ）
+        // 集計ダッシュボード・顧客一覧（責任者・管理者のみ）
         Route::middleware('role:manager,admin')->group(function () {
             Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            Route::get('/admin/customers', [\App\Http\Controllers\Manager\CustomerOverviewController::class, 'index'])->name('admin.customers');
+            Route::post('/admin/customers/{relationship}/cell', [\App\Http\Controllers\Manager\CustomerOverviewController::class, 'updateCell'])->name('admin.customers.cell');
         });
 
         // アカウント管理・紐付け（責任者・管理者のみ）
