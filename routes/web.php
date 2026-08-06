@@ -52,6 +52,8 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/inbox/requests/{staffRequest}/status', [InboxController::class, 'updateRequest'])->name('inbox.requests.status');
             Route::post('/inbox/support/{support}/acknowledge', [InboxController::class, 'acknowledgeSupport'])->name('inbox.support.ack');
             Route::post('/inbox/support/{support}/resolve', [InboxController::class, 'resolveSupport'])->name('inbox.support.resolve');
+            Route::post('/inbox/support/{support}/reply', [InboxController::class, 'replySupport'])->name('inbox.support.reply');
+            Route::post('/inbox/requests/{staffRequest}/reply', [InboxController::class, 'replyRequest'])->name('inbox.requests.reply');
         });
 
         // お知らせ配信管理（責任者・管理者）
@@ -110,12 +112,18 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/search', [WorkController::class, 'search'])->name('search');
             Route::get('/casts', [WorkController::class, 'casts'])->name('casts');
             Route::get('/after', [WorkController::class, 'after'])->name('after');
+            // アフター見守り（キャストの安全：どの店へ・何時から・帰宅連絡）
+            Route::post('/after', [\App\Http\Controllers\Staff\AfterController::class, 'store'])->name('after.store');
+            Route::post('/after/{afterLog}/home', [\App\Http\Controllers\Staff\AfterController::class, 'home'])->name('after.home');
+            Route::post('/after/{afterLog}/reopen', [\App\Http\Controllers\Staff\AfterController::class, 'reopen'])->name('after.reopen');
+            Route::delete('/after/{afterLog}', [\App\Http\Controllers\Staff\AfterController::class, 'destroy'])->name('after.destroy');
             Route::post('/visits/start', [VisitController::class, 'start'])->name('visits.start');
             Route::get('/visits/{visit}', [VisitController::class, 'show'])->name('visits.show');
             Route::post('/visits/{visit}', [VisitController::class, 'update'])->name('visits.update');
             Route::post('/visits/{visit}/leave', [VisitController::class, 'leave'])->name('visits.leave');
             Route::post('/visits/{visit}/cancel', [VisitController::class, 'cancel'])->name('visits.cancel');
             Route::post('/visits/{visit}/seat', [VisitController::class, 'updateSeat'])->name('visits.seat');
+            Route::post('/visits/{visit}/after', [VisitController::class, 'updateAfter'])->name('visits.after');
             Route::post('/visits/{visit}/casts', [VisitController::class, 'addCast'])->name('visits.casts.add');
             Route::delete('/visits/{visit}/casts/{visitCast}', [VisitController::class, 'removeCast'])->name('visits.casts.remove');
             Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');

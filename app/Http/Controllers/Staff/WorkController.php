@@ -173,25 +173,33 @@ class WorkController extends Controller
         return view('staff.work.casts', compact('rows'));
     }
 
-    /** アフター管理（誰がどの客とアフターに行くか／行ったか）を店側が把握する。 */
+    /** アフター見守り（誰が・どの店へ・何時から・帰宅連絡）を黒服が管理する。 */
     public function after(Request $request)
     {
+        $user = Auth::user();
         $date = $request->input('date', now()->toDateString());
+        $isToday = $date === now()->toDateString();
 
-        $visits = Visit::with(['customer', 'primaryCast'])
-            ->whereNotNull('after_status')
-            ->whereDate('arrived_at', $date)
-            ->orderByDesc('arrived_at')
-            ->get();
+        // 見守り対象のキャスト（黒服＝担当のみ／店長・オーナー＝全キャスト）
+        if ($user->isStaff()) {
+            $staff = StaffProfile::where('user_id', $user->id)->first();
+            $casts = $staff ? $staff->assignedCasts()->get() : collect();
+        } else {
+            $casts = \App\Models\Cast::where('status', 'active')->orderBy('display_name')->get();
+        }
+        $castIds = $casts->pluck('id');
 
-        // 直近7日で「行けそう/確定」の履歴も表示
-        $recent = Visit::with(['customer', 'primaryCast'])
-            ->whereIn('after_status', ['likely', 'going'])
-            ->whereDate('arrived_at', '>=', now()->subDays(7)->toDateString())
-            ->whereDate('arrived_at', '<', $date)
-            ->orderByDesc('arrived_at')
-            ->limit(50)->get();
+        // まだ帰宅連絡がないアフター（＝見守り継続中）は日付に関わらず常に上へ
+        $watching = \App\Models\AfterLog::with(['cast', 'customer'])
+            ->out()->whereIn('cast_id', $castIds)
+            ->orderBy('departed_at')->get();
 
-        return view('staff.work.after', compact('visits', 'recent', 'date'));
+        // 指定日のアフター記録（帰宅済みも含む・確認用）
+        $logs = \App\Models\AfterLog::with(['cast', 'customer'])
+            ->whereIn('cast_id', $castIds)
+            ->whereDate('departed_at', $date)
+            ->orderByDesc('departed_at')->get();
+
+        return view('staff.work.after', compact('casts', 'watching', 'logs', 'date', 'isToday'));
     }
 }

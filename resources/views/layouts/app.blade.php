@@ -163,10 +163,10 @@
         <nav class="nav">
             <a href="{{ route('staff.work.index') }}" class="{{ request()->routeIs('staff.work.*') || request()->routeIs('staff.visits.*') ? 'active' : '' }}"><span class="ic">🍾</span>来店中</a>
             <a href="{{ route('staff.plans') }}" class="{{ request()->routeIs('staff.plans') ? 'active' : '' }}"><span class="ic">📅</span>予定</a>
-            <a href="{{ route('staff.search') }}" class="{{ request()->routeIs('staff.search') ? 'active' : '' }}"><span class="ic">🔍</span>検索</a>
+            <a href="{{ route('staff.casts') }}" class="{{ request()->routeIs('staff.casts') ? 'active' : '' }}"><span class="ic">👥</span>担当</a>
             <a href="{{ route('staff.after') }}" class="{{ request()->routeIs('staff.after') ? 'active' : '' }}"><span class="ic">🌙</span>アフター</a>
-            <a href="{{ route('inbox.index') }}" class="{{ request()->routeIs('inbox.*') ? 'active' : '' }}"><span class="ic">📥</span>受信箱</a>
-            <a href="{{ route('announcements.index') }}" class="{{ request()->routeIs('announcements.*') ? 'active' : '' }}"><span class="ic">📣</span>お知らせ</a>
+            <a href="{{ route('staff.search') }}" class="{{ request()->routeIs('staff.search') ? 'active' : '' }}"><span class="ic">🔍</span>検索</a>
+            <a href="{{ route('inbox.index') }}" class="{{ request()->routeIs('inbox.*') || request()->routeIs('announcements.*') ? 'active' : '' }}"><span class="ic">📣</span>お知らせ</a>
         </nav>
     @elseif($r && $r->value === 'cast')
         <nav class="nav">

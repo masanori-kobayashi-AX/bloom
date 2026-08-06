@@ -38,6 +38,7 @@
                 @if($s->condition)<span class="tag off">{{ $s->condition->label() }}</span>@endif
                 @if($s->status==='resolved')<span class="tag on">対応済</span>@elseif($s->status==='acknowledged')<span class="tag">確認済</span>@endif
                 @if($s->body)<div style="margin-top:4px">{{ $s->body }}</div>@endif
+                @if($s->reply)<div class="notice" style="margin-top:6px;font-size:13px">↩ お店から：{{ $s->reply }}</div>@endif
                 <div class="muted" style="font-size:11px">{{ $s->created_at->format('n/j H:i') }}</div>
             </div>
         @empty
@@ -53,6 +54,7 @@
                 <span class="tag {{ $r->status->value==='done' ? 'on' : 'off' }}">{{ $r->status->label() }}</span>
                 @if($r->customer)<span class="muted" style="font-size:12px"> {{ $r->customer_id ? '顧客あり' : '' }}</span>@endif
                 <div style="margin-top:4px">{{ $r->body }}</div>
+                @if($r->reply)<div class="notice" style="margin-top:6px;font-size:13px">↩ 黒服から：{{ $r->reply }}</div>@endif
                 <div class="muted" style="font-size:11px">{{ $r->created_at->format('n/j H:i') }}</div>
             </div>
         @empty

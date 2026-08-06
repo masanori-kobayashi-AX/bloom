@@ -42,10 +42,18 @@ class InboxController extends Controller
                 ->where('audience', 'manager')->latest()->get();
         }
 
+        // お知らせも同じ画面に集約（黒服の下部ナビを「お知らせ」1つにまとめるため）
+        $readIds = \App\Models\AnnouncementRead::where('user_id', $user->id)->pluck('announcement_id')->all();
+        $announcements = \App\Models\Announcement::active()
+            ->orderByRaw("field(importance,'high','normal','low')")
+            ->latest('published_at')->get();
+
         return view('inbox.index', [
             'requests' => $requests,
             'supports' => $supports,
             'statuses' => RequestStatus::options(),
+            'announcements' => $announcements,
+            'readIds' => $readIds,
         ]);
     }
 
@@ -69,6 +77,35 @@ class InboxController extends Controller
         $staffRequest->update($attrs);
 
         return back()->with('status', '対応状況を更新しました。');
+    }
+
+    /** 相談への返信（キャストに表示される）。 */
+    public function replySupport(Request $request, CastSupportRequest $support): RedirectResponse
+    {
+        $this->authorizeSupport($support);
+        $data = $request->validate(['reply' => ['required', 'string', 'max:2000']]);
+        $support->update([
+            'reply' => $data['reply'],
+            'replied_at' => now(),
+            'replied_by' => Auth::id(),
+            'status' => $support->status === 'open' ? 'acknowledged' : $support->status,
+        ]);
+
+        return back()->with('status', '返信しました。キャストに表示されます。');
+    }
+
+    /** 業務連絡への返信。 */
+    public function replyRequest(Request $request, StaffRequest $staffRequest): RedirectResponse
+    {
+        $user = Auth::user();
+        if ($user->isStaff()) {
+            $staffId = StaffProfile::where('user_id', $user->id)->value('id');
+            abort_unless($staffRequest->staff_id === $staffId, 403);
+        }
+        $data = $request->validate(['reply' => ['required', 'string', 'max:2000']]);
+        $staffRequest->update(['reply' => $data['reply'], 'replied_at' => now(), 'replied_by' => $user->id]);
+
+        return back()->with('status', '返信しました。');
     }
 
     public function acknowledgeSupport(CastSupportRequest $support): RedirectResponse

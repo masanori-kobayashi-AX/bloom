@@ -116,6 +116,24 @@ class Phase5CommsTest extends TestCase
         $this->actingAs($manager)->get(route('inbox.index'))->assertOk()->assertDontSee('今日は少しフォローしてほしい');
     }
 
+    public function test_assigned_staff_reply_to_support_shows_to_cast(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        [$su, $staff] = $this->makeStaff('kuro');
+        $this->assign($cast, $staff);
+
+        $this->actingAs($cu)->post(route('cast.support.store'), [
+            'audience' => 'staff', 'body' => '相談したい',
+        ])->assertRedirect();
+
+        $support = CastSupportRequest::where('cast_id', $cast->id)->first();
+        $this->actingAs($su)->post(route('inbox.support.reply', $support), ['reply' => '大丈夫だよ、任せて'])->assertRedirect();
+
+        $this->assertSame('大丈夫だよ、任せて', $support->fresh()->reply);
+        // キャストの相談画面に返信が出る
+        $this->actingAs($cu)->get(route('cast.support.index'))->assertOk()->assertSee('大丈夫だよ、任せて');
+    }
+
     public function test_staff_cannot_acknowledge_manager_audience_support(): void
     {
         [$cu, $cast] = $this->makeCast('yui');

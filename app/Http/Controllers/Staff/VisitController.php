@@ -230,6 +230,22 @@ class VisitController extends Controller
         return back()->with('status', '来店予定を確認しました。');
     }
 
+    /** 黒服がアフター状況を設定・更新（来店中の客に対し、その場で）。 */
+    public function updateAfter(Request $request, Visit $visit): RedirectResponse
+    {
+        abort_unless($visit->store_id === CurrentStore::id(), 403);
+        $data = $request->validate([
+            'after_status' => ['nullable', Rule::in(array_keys(\App\Enums\AfterStatus::options()))],
+            'after_status_note' => ['nullable', 'string', 'max:255'],
+        ]);
+        $visit->update([
+            'after_status' => $data['after_status'] ?: null,
+            'after_status_note' => $data['after_status_note'] ?? $visit->after_status_note,
+        ]);
+
+        return back()->with('status', 'アフター状況を更新しました。');
+    }
+
     /** 席だけを変更（来店中一覧からその場で）。他の項目は消さない。 */
     public function updateSeat(Request $request, Visit $visit): RedirectResponse
     {

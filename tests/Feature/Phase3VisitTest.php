@@ -165,12 +165,11 @@ class Phase3VisitTest extends TestCase
         $this->actingAs($staff)->get(route('staff.work.index'))->assertOk()->assertSee('通されると喜ぶ');
     }
 
-    public function test_after_status_flow_and_store_management(): void
+    public function test_cast_can_declare_after_likelihood_on_visit(): void
     {
         [$cu, $cast] = $this->makeCast('yui');
         $rel = $this->makeRelationship($cast, 'たろう');
         $staff = $this->makeStaff('kuro');
-        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
 
         $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $rel->customer_id]);
         $this->actingAs($cu)->post(route('cast.customers.after.update', $rel), ['after_status' => 'likely'])->assertRedirect();
@@ -178,9 +177,32 @@ class Phase3VisitTest extends TestCase
         $visit = Visit::where('customer_id', $rel->customer_id)->first();
         $this->assertSame('likely', $visit->after_status->value);
         $this->assertSame($cast->id, $visit->primary_cast_id); // 誰が行くかが紐づく
+    }
 
-        // 店側のアフター管理に「キャスト×お客様」が出る
-        $this->actingAs($manager)->get(route('staff.after'))->assertOk()->assertSee('yui')->assertSee('たろう');
+    public function test_after_watch_log_flow(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        // 黒服/店長がアフター開始（どのキャストが・どの店へ）を記録
+        $this->actingAs($manager)->post(route('staff.after.store'), [
+            'cast_id' => $cast->id,
+            'destination' => 'BAR月',
+            'companion' => 'たろう',
+        ])->assertRedirect();
+
+        $log = \App\Models\AfterLog::first();
+        $this->assertNotNull($log);
+        $this->assertSame('out', $log->status);           // 帰宅連絡待ち
+        $this->assertNotNull($log->departed_at);
+
+        // 見守り画面にキャスト名と行き先が出る
+        $this->actingAs($manager)->get(route('staff.after'))->assertOk()->assertSee('yui')->assertSee('BAR月');
+
+        // 帰宅連絡が来たら見守り終了
+        $this->actingAs($manager)->post(route('staff.after.home', $log))->assertRedirect();
+        $this->assertSame('home', $log->fresh()->status);
+        $this->assertNotNull($log->fresh()->home_reported_at);
     }
 
     public function test_cast_cannot_access_staff_area(): void

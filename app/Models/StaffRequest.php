@@ -17,7 +17,7 @@ class StaffRequest extends Model
 
     protected $fillable = [
         'store_id', 'cast_id', 'staff_id', 'customer_id', 'relationship_id',
-        'type', 'body', 'status', 'confirmed_at', 'confirmed_by', 'created_by', 'updated_by',
+        'type', 'body', 'reply', 'replied_at', 'replied_by', 'status', 'confirmed_at', 'confirmed_by', 'created_by', 'updated_by',
     ];
 
     protected function casts(): array
@@ -25,6 +25,7 @@ class StaffRequest extends Model
         return [
             'status' => RequestStatus::class,
             'confirmed_at' => 'datetime',
+            'replied_at' => 'datetime',
         ];
     }
 
