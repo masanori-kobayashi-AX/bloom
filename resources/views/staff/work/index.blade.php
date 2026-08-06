@@ -10,6 +10,7 @@
         <a class="btn sm {{ $big ? '' : 'ghost' }}" href="{{ route('staff.work.index', ['big' => $big ? null : 1]) }}">{{ $big ? '通常表示' : '🔍 営業中モード' }}</a>
         <a class="btn sm ghost" href="{{ route('staff.plans') }}">📅 予定（{{ $todayPlanCount }}）</a>
         <a class="btn sm ghost" href="{{ route('staff.search') }}">🔍 来店開始</a>
+        <a class="btn sm ghost" href="{{ route('staff.casts') }}">👥 担当キャスト</a>
     </div>
 
     @if($cards->isEmpty())
@@ -20,9 +21,12 @@
             @php($v = $card['visit'])@php($c = $v->customer)
             <div class="card" style="margin:0">
                 <div class="row" style="gap:12px">
-                    <form method="POST" action="{{ route('staff.visits.seat', $v) }}" style="margin:0" title="タップで席を変更">@csrf
-                        <input name="seat" value="{{ $v->seat }}" placeholder="席" onchange="this.form.submit()" list="seatlist"
-                               class="seat-badge" style="width:66px;border:none;text-align:center;outline:none">
+                    <form method="POST" action="{{ route('staff.visits.seat', $v) }}" style="margin:0" title="席を選ぶと即保存">@csrf
+                        <select name="seat" onchange="this.form.submit()" class="seat-badge" style="border:none;outline:none;padding:0 6px;cursor:pointer">
+                            <option value="">席?</option>
+                            @foreach($seats as $sn)<option value="{{ $sn }}" @selected($v->seat===$sn)>{{ $sn }}</option>@endforeach
+                            @if($v->seat && ! $seats->contains($v->seat))<option value="{{ $v->seat }}" selected>{{ $v->seat }}</option>@endif
+                        </select>
                     </form>
                     <div style="min-width:0">
                         @php($isMgr = auth()->user()->isManager() || auth()->user()->isAdmin())
