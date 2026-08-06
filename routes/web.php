@@ -26,8 +26,26 @@ use Illuminate\Support\Facades\Route;
 
 // ---- 認証（未ログイン） -------------------------------------------------
 Route::middleware('guest')->group(function () {
+    // 共通ログイン（全役割可）
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+
+    // 役割別ログイン入口（その役割だけ通す）：/login/cast /staff /manager /owner
+    Route::get('/login/{role}', [LoginController::class, 'createRole'])
+        ->whereIn('role', ['cast', 'staff', 'manager', 'owner'])->name('login.role');
+    Route::post('/login/{role}', [LoginController::class, 'storeRole'])
+        ->whereIn('role', ['cast', 'staff', 'manager', 'owner'])->name('login.role.store');
+
+    // メール2段階認証（コード入力）
+    Route::get('/login-verify', [LoginController::class, 'showTwoFactor'])->name('login.2fa');
+    Route::post('/login-verify', [LoginController::class, 'verifyTwoFactor'])->name('login.2fa.verify');
+    Route::post('/login-verify/resend', [LoginController::class, 'resendTwoFactor'])->name('login.2fa.resend');
+
+    // パスワード忘れ（メール再設定）
+    Route::get('/password/forgot', [\App\Http\Controllers\Auth\PasswordResetController::class, 'request'])->name('password.request');
+    Route::post('/password/forgot', [\App\Http\Controllers\Auth\PasswordResetController::class, 'email'])->name('password.email');
+    Route::get('/password/reset/{token}', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.reset');
+    Route::post('/password/reset', [\App\Http\Controllers\Auth\PasswordResetController::class, 'update'])->name('password.update');
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');

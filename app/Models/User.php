@@ -41,6 +41,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'locked_until' => 'datetime',
+            'two_factor_expires_at' => 'datetime',
         ];
     }
 
@@ -118,5 +119,19 @@ class User extends Authenticatable
     public function isUsable(): bool
     {
         return $this->is_active && $this->activeMembership() !== null;
+    }
+
+    /** 2FA送信先の目隠し表示（例：ab***@ex***.com）。 */
+    public function maskedEmail(): string
+    {
+        $email = (string) $this->email;
+        if (! str_contains($email, '@')) {
+            return 'ご登録のメール';
+        }
+        [$local, $domain] = explode('@', $email, 2);
+        $maskedLocal = mb_substr($local, 0, 2) . '***';
+        $maskedDomain = mb_substr($domain, 0, 2) . '***';
+
+        return $maskedLocal . '@' . $maskedDomain;
     }
 }

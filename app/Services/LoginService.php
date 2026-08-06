@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\RoleKey;
 use App\Models\LoginHistory;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -17,10 +18,14 @@ class LoginService
 {
     private const CODE_MINUTES = 10;
 
-    /** この利用者に2FAを課すか（メール登録済みのみ）。 */
+    /**
+     * この利用者に2FAを課すか。
+     * 全顧客データを扱う店長・管理者かつメール登録済みのみ（届く相手だけ強制）。
+     * キャスト・黒服、メール未登録者はパスワードのみ。
+     */
     public static function needsTwoFactor(User $user): bool
     {
-        return ! empty($user->email);
+        return $user->hasRole(RoleKey::Manager, RoleKey::Admin) && ! empty($user->email);
     }
 
     /** ワンタイムコードを発行してメール送信。開発環境ではコードを画面表示用に返す。 */
@@ -43,8 +48,8 @@ class LoginService
             report($e);
         }
 
-        // ローカル環境ではテスト用にコードを返す（本番は返さない）
-        return app()->environment('local') ? $code : null;
+        // ローカル/テスト環境のみコードを返す（本番は返さない）。画面表示はlocalのみ。
+        return app()->environment(['local', 'testing']) ? $code : null;
     }
 
     /** 入力コードを検証。成功なら true。 */
