@@ -21,7 +21,7 @@
             <a href="{{ route('cast.customers.show', $r) }}" style="display:block;color:inherit">
                 <div class="card" style="margin:10px 0">
                     <div class="row">
-                        <span style="font-size:22px">{{ $r->avatar_emoji ?? '👤' }}</span>
+                        @include('partials.avatar', ['name' => $r->customer_name, 'emoji' => $r->avatar_emoji])
                         <div style="min-width:0">
                             <div style="font-weight:600">{{ $r->customer_name }}</div>
                             <div class="muted" style="font-size:12px">

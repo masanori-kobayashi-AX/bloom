@@ -46,7 +46,7 @@ class HomeController extends Controller
                 'dueTodayActions' => NextAction::with('relationship')
                     ->where('cast_id', $castId)->where('completed', false)
                     ->whereDate('due_on', '<=', $today)
-                    ->orderByRaw('due_on is null, due_on asc')->limit(5)->get(),
+                    ->orderByRaw('due_on is null, due_on asc')->limit(3)->get(),
                 'recent' => CastCustomerRelationship::where('cast_id', $castId)
                     ->latest()->limit(5)->get(),
             ];

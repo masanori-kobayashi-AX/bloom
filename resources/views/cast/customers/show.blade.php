@@ -17,7 +17,7 @@
     {{-- 次の判断サマリ（常時上部・営業中はここだけ見れば足りる） --}}
     <div class="card">
         <div class="row">
-            <span style="font-size:32px">{{ $rel->avatar_emoji ?? '👤' }}</span>
+            @include('partials.avatar', ['name' => $rel->customer_name, 'emoji' => $rel->avatar_emoji, 'lg' => true])
             <div style="min-width:0">
                 <div style="font-size:20px;font-weight:700">{{ $rel->customer_name }}</div>
                 <div class="muted" style="font-size:12px">

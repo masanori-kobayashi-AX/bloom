@@ -173,6 +173,10 @@ class MetricsService
                 $last = $lastVisits[$r->customer_id] ?? null;
 
                 return $last !== null && Carbon::parse($last)->lt($thirtyAgo);
+            })
+            ->each(function ($r) use ($lastVisits) {
+                // 気づきの根拠：前回来店からの日数を添える
+                $r->last_visit_days = (int) Carbon::parse($lastVisits[$r->customer_id])->diffInDays(now());
             });
 
         return [

@@ -18,13 +18,12 @@
             @endif
         </div>
 
+        {{-- 毎日の行動に直結する指標だけに絞る（登録顧客数等はダッシュボード側で） --}}
         <div class="stat-grid" style="margin:8px 0">
-            <div class="stat"><div class="stat-num">{{ $cast['customerCount'] }}</div><div class="stat-label">登録顧客</div></div>
             <div class="stat"><div class="stat-num" style="color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div><div class="stat-label">未対応アクション</div></div>
-            <div class="stat"><div class="stat-num">{{ $cast['newLineThisMonth'] }}</div><div class="stat-label">今月の新規LINE</div></div>
+            <div class="stat"><div class="stat-num">{{ $cast['importantNotVisited']->count() }}</div><div class="stat-label">未来店の重要顧客</div></div>
             <div class="stat"><div class="stat-num">{{ $cast['visitedThisMonth'] }}</div><div class="stat-label">今月の来店</div></div>
             <div class="stat"><div class="stat-num">{{ $cast['honshimeiThisMonth'] }}</div><div class="stat-label">今月の本指名</div></div>
-            <div class="stat"><div class="stat-num">{{ $cast['importantNotVisited']->count() }}</div><div class="stat-label">未来店の重要顧客</div></div>
         </div>
 
         @if($cast['overdueActions'] > 0)
@@ -43,9 +42,9 @@
                 </div>
             @endif
             @if($cast['longAbsent']->isNotEmpty())
-                <div style="padding:6px 0">🕊 前回来店から30日以上の顧客が <strong>{{ $cast['longAbsent']->count() }}名</strong> います。そろそろ連絡してみては。
+                <div style="padding:6px 0">🕊 しばらく来店していない顧客が <strong>{{ $cast['longAbsent']->count() }}名</strong> います。そろそろ連絡してみては。
                     @foreach($cast['longAbsent']->take(3) as $r)
-                        <a href="{{ route('cast.customers.show', $r) }}" class="tag" style="margin:2px">{{ $r->customer_name }}</a>
+                        <a href="{{ route('cast.customers.show', $r) }}" class="tag" style="margin:2px">{{ $r->customer_name }}（前回{{ $r->last_visit_days }}日前）</a>
                     @endforeach
                 </div>
             @endif
@@ -71,8 +70,9 @@
             <div class="row"><h2 style="margin:0">最近登録した顧客</h2><span style="flex:1"></span><a href="{{ route('cast.customers.index') }}" style="font-size:13px">顧客一覧</a></div>
             @forelse($cast['recent'] as $r)
                 <a href="{{ route('cast.customers.show', $r) }}" style="display:block;color:inherit">
-                    <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
-                        <span>{{ $r->avatar_emoji ?? '👤' }} {{ $r->customer_name }}</span>
+                    <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0;gap:8px">
+                        @include('partials.avatar', ['name' => $r->customer_name, 'emoji' => $r->avatar_emoji])
+                        <span>{{ $r->customer_name }}</span>
                         <span style="flex:1"></span>
                         <span class="tag">{{ $r->status?->label() }}</span>
                     </div>
