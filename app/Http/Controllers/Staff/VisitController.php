@@ -31,6 +31,7 @@ class VisitController extends Controller
         $data = $request->validate([
             'customer_id' => ['nullable', 'integer'],
             'visit_plan_id' => ['nullable', 'integer'],
+            'cast_id' => ['nullable', 'integer'],
             'seat' => ['nullable', 'string', 'max:50'],
         ]);
 
@@ -42,6 +43,10 @@ class VisitController extends Controller
             $plan = VisitPlan::findOrFail($data['visit_plan_id']);
             $customerId = $plan->customer_id;
             $primaryCastId = $plan->cast_id;
+        } elseif (! empty($data['cast_id'])) {
+            // 検索からの来店開始：指名キャストを引き継ぐ（在籍確認）
+            $cast = \App\Models\Cast::where('id', $data['cast_id'])->where('store_id', $storeId)->first();
+            $primaryCastId = $cast?->id;
         }
 
         abort_if(! $customerId, 422, '顧客が指定されていません。');

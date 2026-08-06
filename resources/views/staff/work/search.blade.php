@@ -36,8 +36,9 @@
                 @endif
                 <form method="POST" action="{{ route('staff.visits.start') }}" style="margin-top:10px">@csrf
                     <input type="hidden" name="customer_id" value="{{ $r->customer_id }}">
+                    <input type="hidden" name="cast_id" value="{{ $r->cast_id }}">
                     <input name="seat" placeholder="席（任意）" style="margin-bottom:8px">
-                    <button class="btn sm" type="submit">来店開始</button>
+                    <button class="btn sm" type="submit">{{ $r->cast?->display_name ? '来店開始（指名：'.$r->cast->display_name.'）' : '来店開始' }}</button>
                 </form>
             </div>
         @endforeach

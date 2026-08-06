@@ -99,6 +99,21 @@ class BacklogHardeningTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'visit.cancel', 'auditable_id' => $visit->id]);
     }
 
+    public function test_walkin_start_with_cast_id_attributes_primary_cast(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'honshimei']);
+        $staff = $this->makeStaff('kuro');
+
+        // 検索からの来店開始（予定なし）でも cast_id を渡せば指名キャストに紐づく
+        $this->actingAs($staff)->post(route('staff.visits.start'), ['customer_id' => $customer->id, 'cast_id' => $cast->id])->assertRedirect();
+
+        $visit = Visit::where('customer_id', $customer->id)->first();
+        $this->assertSame($cast->id, $visit->primary_cast_id);
+        $this->assertDatabaseHas('visit_casts', ['visit_id' => $visit->id, 'cast_id' => $cast->id, 'role' => 'nominated']);
+    }
+
     public function test_structured_alert_stores_source_and_expiry(): void
     {
         [$cu, $cast] = $this->makeCast('yui');
