@@ -39,6 +39,8 @@ class CustomerOverviewController extends Controller
             ->selectRaw("(select count(*) $base and visits.status='left') as visit_count")
             ->selectRaw("(select coalesce(sum(amount),0) $base) as total_sales")
             ->when($castId, fn ($q) => $q->where('cast_id', $castId))
+            // 未選択（全体）では在籍キャストのみ。退店者の顧客は「退店者」で指名したときだけ表示。
+            ->when(! $castId, fn ($q) => $q->whereHas('cast', fn ($c) => $c->where('status', 'active')))
             ->orderBy('cast_id')
             ->orderByRaw('updated_at desc')
             ->get();
@@ -49,12 +51,17 @@ class CustomerOverviewController extends Controller
         }
 
         $casts = \App\Models\Cast::where('status', 'active')->orderBy('display_name')->get();
+        // 退店者（クローズ済み）＝店長・管理者だけが、退店者名から顧客情報をたどれる
+        $formerCasts = \App\Models\Cast::where('status', 'left')->orderBy('display_name')->get();
+        $selectedCast = $castId ? \App\Models\Cast::find($castId) : null;
 
         return view('manager.customers.index', [
             'rows' => $rows,
             'showPrivate' => $showPrivate,
-            'canEdit' => $user->isAdmin(), // 編集はオーナーのみ（店長は閲覧）
+            'canEdit' => $user->isAdmin() && ! ($selectedCast && $selectedCast->status === 'left'), // 退店者の顧客は閲覧のみ
             'casts' => $casts,
+            'formerCasts' => $formerCasts,
+            'selectedCast' => $selectedCast,
             'castId' => $castId,
             'statuses' => \App\Enums\CustomerStatus::options(),
             'importances' => \App\Enums\CustomerImportance::options(),

@@ -296,4 +296,54 @@ class BacklogHardeningTest extends TestCase
 
         $this->assertDatabaseHas('customer_alerts', ['customer_id' => $customer->id, 'source' => '会計', 'action_plan' => '次回は現金確認']);
     }
+
+    public function test_manager_closes_cast_and_can_reopen(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $staff = $this->makeStaff('kuro');
+        $staffProfile = StaffProfile::where('user_id', $staff->id)->first();
+        // 担当を紐付けておく
+        \App\Models\CastStaffAssignment::create(['store_id' => $this->store->id, 'cast_id' => $cast->id, 'staff_id' => $staffProfile->id, 'assigned_at' => now()]);
+
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        // 退店（クローズ）
+        $this->actingAs($manager)->post(route('admin.accounts.suspend', $cu), ['reason' => '退店'])->assertRedirect();
+
+        $cast->refresh();
+        $this->assertSame('left', $cast->status);            // 在籍→離任
+        $this->assertNotNull($cast->left_on);
+        $this->assertFalse((bool) $cu->fresh()->is_active);   // ログイン不可
+        // 担当が解除されている（黒服のアフター候補などから外れる）
+        $this->assertSame(0, $staffProfile->assignedCasts()->count());
+        // アクティブなキャスト一覧から外れる
+        $this->assertFalse(Cast::where('status', 'active')->where('id', $cast->id)->exists());
+
+        // 復帰
+        $this->actingAs($manager)->post(route('admin.accounts.reactivate', $cu))->assertRedirect();
+        $cast->refresh();
+        $this->assertSame('active', $cast->status);
+        $this->assertNull($cast->left_on);
+        $this->assertTrue((bool) $cu->fresh()->is_active);
+        // 担当は自動では戻らない（手動再設定）
+        $this->assertSame(0, $staffProfile->assignedCasts()->count());
+    }
+
+    public function test_former_cast_customers_visible_to_manager_via_former_filter(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => 'たっくん', 'status' => 'honshimei']);
+
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        // 退店（クローズ）
+        $this->actingAs($manager)->post(route('admin.accounts.suspend', $cu), ['reason' => '退店'])->assertRedirect();
+
+        // 全体（在籍のみ）には退店者の顧客は出ない
+        $this->actingAs($manager)->get(route('admin.customers'))->assertOk()->assertDontSee('たっくん');
+        // 退店者を指名すれば、店長は顧客情報を見られる
+        $this->actingAs($manager)->get(route('admin.customers', ['cast_id' => $cast->id]))
+            ->assertOk()->assertSee('たっくん')->assertSee('退店者');
+    }
 }

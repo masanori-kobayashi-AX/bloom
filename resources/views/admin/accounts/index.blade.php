@@ -38,9 +38,9 @@
                     <td>{{ $m->role?->name }}</td>
                     <td>
                         @if($m->status === 'active')
-                            <span class="tag on">有効</span>
+                            <span class="tag on">在籍</span>
                         @else
-                            <span class="tag off">停止</span>
+                            <span class="tag off">クローズ（退店）</span>
                         @endif
                     </td>
                     <td>
@@ -53,14 +53,14 @@
                             </form>
                             @if($m->status === 'active')
                                 <form method="POST" action="{{ route('admin.accounts.suspend', $m->user) }}"
-                                      onsubmit="return confirm('このアカウントを利用停止にします（データは保持されます）。よろしいですか？')">
+                                      onsubmit="return confirm('このアカウントを退店（クローズ）にします。ログインできなくなり、担当や一覧からも外れます。データは保持され、後から復帰できます。よろしいですか？')">
                                     @csrf
-                                    <button class="btn sm danger" type="submit">停止</button>
+                                    <button class="btn sm danger" type="submit">退店（クローズ）</button>
                                 </form>
                             @else
                                 <form method="POST" action="{{ route('admin.accounts.reactivate', $m->user) }}">
                                     @csrf
-                                    <button class="btn sm" type="submit">再開</button>
+                                    <button class="btn sm" type="submit">復帰</button>
                                 </form>
                             @endif
                         </div>
@@ -75,5 +75,5 @@
         </div>
         @endif
     </div>
-    <div class="notice">利用停止はログインを即座に無効化します。履歴・データは削除されません。※システム管理者は最上位で、他の役割からは操作できません。</div>
+    <div class="notice">退店（クローズ）はログインを即座に無効化し、担当の紐付けや各種一覧（アフター・担当・検索候補）からも外します。顧客・来店履歴・メモなどのデータは削除されません。後から「復帰」で戻せます（担当は手動で再設定）。<br>退店者が持っていた<strong>顧客情報は <a href="{{ route('admin.customers') }}">顧客一覧（全体）</a> の「退店者（クローズ）」から店長・管理者だけが確認</strong>できます。※システム管理者は最上位で、他の役割からは操作できません。</div>
 @endsection

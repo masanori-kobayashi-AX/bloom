@@ -175,16 +175,49 @@ class AccountController extends Controller
                 'suspended_at' => now(),
                 'suspended_reason' => $request->input('reason'),
             ]);
-            // アカウント自体も無効化（データは削除しない：停止と削除は分離）
+            // アカウント自体も無効化（データは削除しない：クローズと削除は分離）
             $user->forceFill(['is_active' => false])->saveQuietly();
 
-            AuditLogger::record('account.suspend', $user, '退店・アカウント停止', after: [
+            // 退店：プロフィールを離任にし、担当を解除（一覧・ドロップダウンから外す）
+            $this->closeProfiles($user);
+
+            AuditLogger::record('account.suspend', $user, '退店（クローズ）', after: [
                 'reason' => $request->input('reason'),
             ], storeId: $storeId);
         });
 
         return redirect()->route('admin.accounts.index')
-            ->with('status', "{$user->name} を利用停止にしました（データは保持されます）。");
+            ->with('status', "{$user->name} を退店（クローズ）にしました。ログイン・担当・一覧から外れます（データは保持されます）。");
+    }
+
+    /** 退店：キャスト/黒服のプロフィールを離任にし、現在の担当紐付けを解除する。データは削除しない。 */
+    private function closeProfiles(User $user): void
+    {
+        $cast = Cast::where('user_id', $user->id)->first();
+        if ($cast) {
+            $cast->update(['status' => 'left', 'left_on' => now()->toDateString()]);
+            $cast->activeAssignments()->update(['released_at' => now()]);
+        }
+
+        $staff = StaffProfile::where('user_id', $user->id)->first();
+        if ($staff) {
+            $staff->update(['status' => 'left']);
+            $staff->activeAssignments()->update(['released_at' => now()]);
+        }
+    }
+
+    /** 復帰：プロフィールを在籍に戻す。担当は自動で戻さない（店長が手動で紐付け直す）。 */
+    private function reopenProfiles(User $user): void
+    {
+        $cast = Cast::where('user_id', $user->id)->first();
+        if ($cast) {
+            $cast->update(['status' => 'active', 'left_on' => null]);
+        }
+
+        $staff = StaffProfile::where('user_id', $user->id)->first();
+        if ($staff) {
+            $staff->update(['status' => 'active']);
+        }
     }
 
     public function reactivate(User $user): RedirectResponse
@@ -197,10 +230,12 @@ class AccountController extends Controller
         DB::transaction(function () use ($user, $membership, $storeId) {
             $membership->update(['status' => 'active', 'suspended_at' => null, 'suspended_reason' => null]);
             $user->forceFill(['is_active' => true])->saveQuietly();
-            AuditLogger::record('account.reactivate', $user, 'アカウント再開', storeId: $storeId);
+            // 在籍に戻す（担当は自動で戻さない：店長が手動で紐付け直す）
+            $this->reopenProfiles($user);
+            AuditLogger::record('account.reactivate', $user, '復帰（クローズ解除）', storeId: $storeId);
         });
 
-        return redirect()->route('admin.accounts.index')->with('status', "{$user->name} を再開しました。");
+        return redirect()->route('admin.accounts.index')->with('status', "{$user->name} を復帰させました。担当は必要に応じて紐付け直してください。");
     }
 
     public function resetPassword(User $user): RedirectResponse

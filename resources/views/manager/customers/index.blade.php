@@ -8,13 +8,24 @@
         <span style="flex:1"></span>
         <form method="GET" action="{{ route('admin.customers') }}">
             <select name="cast_id" onchange="this.form.submit()">
-                <option value="">全キャスト</option>
+                <option value="">全キャスト（在籍）</option>
                 @foreach($casts as $c)
                     <option value="{{ $c->id }}" @selected((string)$castId===(string)$c->id)>{{ $c->display_name }}</option>
                 @endforeach
+                @if($formerCasts->isNotEmpty())
+                    <optgroup label="退店者（クローズ）">
+                        @foreach($formerCasts as $c)
+                            <option value="{{ $c->id }}" @selected((string)$castId===(string)$c->id)>{{ $c->display_name }}（退店）</option>
+                        @endforeach
+                    </optgroup>
+                @endif
             </select>
         </form>
     </div>
+
+    @if($selectedCast && $selectedCast->status === 'left')
+        <div class="notice" style="margin:8px 0;border-color:#d9822b;background:#fff8f2">🚪 <strong>退店者「{{ $selectedCast->display_name }}」さんの顧客情報</strong>です（{{ $selectedCast->left_on?->format('Y/n/j') }} 退店）。店舗の資産として保持されています。閲覧のみ。</div>
+    @endif
 
     @if($canEdit)
         <div class="notice" style="margin:8px 0">全キャストの顧客を横スクロールで管理できます。<strong>状況・区分はセルで直接変更→即保存</strong>。本人コメント（🌸私だけのメモ）も表示（この閲覧・編集は監査ログに記録されます）。</div>
