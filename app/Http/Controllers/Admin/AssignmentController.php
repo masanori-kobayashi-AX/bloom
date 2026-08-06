@@ -21,7 +21,9 @@ class AssignmentController extends Controller
     public function index()
     {
         $casts = Cast::with(['activeAssignments.staff'])->where('status', 'active')->orderBy('display_name')->get();
-        $staff = StaffProfile::where('status', 'active')->orderBy('display_name')->get();
+        // 黒服ごとの担当キャストも取得（誰が何人担当しているか把握）
+        $staff = StaffProfile::with(['assignedCasts' => fn ($q) => $q->orderBy('display_name')])
+            ->where('status', 'active')->orderBy('display_name')->get();
 
         return view('admin.assignments.index', compact('casts', 'staff'));
     }

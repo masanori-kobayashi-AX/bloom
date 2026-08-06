@@ -115,6 +115,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/visits/{visit}', [VisitController::class, 'update'])->name('visits.update');
             Route::post('/visits/{visit}/leave', [VisitController::class, 'leave'])->name('visits.leave');
             Route::post('/visits/{visit}/cancel', [VisitController::class, 'cancel'])->name('visits.cancel');
+            Route::post('/visits/{visit}/seat', [VisitController::class, 'updateSeat'])->name('visits.seat');
             Route::post('/visits/{visit}/casts', [VisitController::class, 'addCast'])->name('visits.casts.add');
             Route::delete('/visits/{visit}/casts/{visitCast}', [VisitController::class, 'removeCast'])->name('visits.casts.remove');
             Route::post('/plans/{plan}/confirm', [VisitController::class, 'confirmPlan'])->name('plans.confirm');

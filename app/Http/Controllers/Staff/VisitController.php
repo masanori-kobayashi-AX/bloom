@@ -230,6 +230,16 @@ class VisitController extends Controller
         return back()->with('status', '来店予定を確認しました。');
     }
 
+    /** 席だけを変更（来店中一覧からその場で）。他の項目は消さない。 */
+    public function updateSeat(Request $request, Visit $visit): RedirectResponse
+    {
+        abort_unless($visit->store_id === CurrentStore::id(), 403);
+        $data = $request->validate(['seat' => ['nullable', 'string', 'max:50']]);
+        $visit->update(['seat' => $data['seat'] ?: null]);
+
+        return back()->with('status', '席を変更しました。');
+    }
+
     /** 来店取消（誤操作）。来店中のみ・論理削除で復元可能・監査記録。 */
     public function cancel(Visit $visit): RedirectResponse
     {

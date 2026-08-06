@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', '担当の紐付け')
+@section('wrapClass', 'wide')
 
 @section('content')
     <h1>キャストと担当黒服の紐付け</h1>
@@ -59,5 +60,29 @@
         </table>
         </div>
         @endif
+    </div>
+
+    {{-- 黒服ごとの担当キャスト --}}
+    <div class="card">
+        <h2>黒服ごとの担当キャスト</h2>
+        <div class="grid-cards">
+            @foreach($staff as $s)
+                <div class="card" style="margin:0">
+                    <div class="row">
+                        <strong>{{ $s->display_name }}</strong>
+                        <span class="muted" style="font-size:12px">（{{ $s->position }}）</span>
+                        <span style="flex:1"></span>
+                        <span class="tag">{{ $s->assignedCasts->count() }}名担当</span>
+                    </div>
+                    <div style="margin-top:6px">
+                        @forelse($s->assignedCasts as $c)
+                            <span class="tag" style="margin:2px">{{ $c->display_name }}</span>
+                        @empty
+                            <span class="muted" style="font-size:12px">担当キャストなし</span>
+                        @endforelse
+                    </div>
+                </div>
+            @endforeach
+        </div>
     </div>
 @endsection

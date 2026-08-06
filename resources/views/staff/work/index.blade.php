@@ -19,7 +19,10 @@
             @php($v = $card['visit'])@php($c = $v->customer)
             <div class="card" style="margin:0">
                 <div class="row" style="gap:12px">
-                    <span class="seat-badge">{{ $v->seat ?: '席?' }}</span>
+                    <form method="POST" action="{{ route('staff.visits.seat', $v) }}" style="margin:0" title="タップで席を変更">@csrf
+                        <input name="seat" value="{{ $v->seat }}" placeholder="席" onchange="this.form.submit()"
+                               class="seat-badge" style="width:66px;border:none;text-align:center;outline:none">
+                    </form>
                     <div style="min-width:0">
                         <div class="cust-name">{{ $card['name'] }}</div>
                         <div class="muted" style="font-size:12px">
