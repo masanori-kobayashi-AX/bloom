@@ -18,12 +18,24 @@
             @endif
         </div>
 
-        {{-- 毎日の行動に直結する指標だけに絞る（登録顧客数等はダッシュボード側で） --}}
+        {{-- 毎日の行動に直結する指標。タップで該当リストへ --}}
         <div class="stat-grid" style="margin:8px 0">
-            <div class="stat"><div class="stat-num" style="color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div><div class="stat-label">未対応アクション</div></div>
-            <div class="stat"><div class="stat-num">{{ $cast['importantNotVisited']->count() }}</div><div class="stat-label">未来店の重要顧客</div></div>
-            <div class="stat"><div class="stat-num">{{ $cast['visitedThisMonth'] }}</div><div class="stat-label">今月の来店</div></div>
-            <div class="stat"><div class="stat-num">{{ $cast['honshimeiThisMonth'] }}</div><div class="stat-label">今月の本指名</div></div>
+            <a class="stat" href="{{ route('cast.actions.index') }}" style="color:inherit;text-decoration:none">
+                <div class="stat-num" style="color:{{ $cast['overdueActions']>0 ? 'var(--warn)' : 'var(--ink)' }}">{{ $cast['openActions'] }}</div>
+                <div class="stat-label">未対応アクション ›</div>
+            </a>
+            <a class="stat" href="{{ route('cast.customers.index', ['status' => 'important']) }}" style="color:inherit;text-decoration:none">
+                <div class="stat-num">{{ $cast['importantNotVisited']->count() }}</div>
+                <div class="stat-label">未来店の重要顧客 ›</div>
+            </a>
+            <a class="stat" href="{{ route('cast.customers.index', ['sort' => 'last_visit']) }}" style="color:inherit;text-decoration:none">
+                <div class="stat-num">{{ $cast['visitedThisMonth'] }}</div>
+                <div class="stat-label">今月の来店 ›</div>
+            </a>
+            <a class="stat" href="{{ route('cast.customers.index', ['status' => 'honshimei']) }}" style="color:inherit;text-decoration:none">
+                <div class="stat-num">{{ $cast['honshimeiThisMonth'] }}</div>
+                <div class="stat-label">今月の本指名 ›</div>
+            </a>
         </div>
 
         @if($cast['overdueActions'] > 0)
