@@ -58,6 +58,7 @@ class WorkController extends Controller
             return [
                 'visit' => $v,
                 'name' => $rel?->customer_name ?? ('顧客#' . $v->customer_id),
+                'relId' => $rel?->id,
                 'sharedNotes' => $sharedNotes,
                 'handovers' => $handovers,
                 'pastVisits' => $pastVisits,
@@ -73,6 +74,7 @@ class WorkController extends Controller
             'cards' => $cards,
             'todayPlanCount' => $todayPlanCount,
             'big' => $request->boolean('big'),
+            'seats' => \App\Models\Seat::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name'),
         ]);
     }
 

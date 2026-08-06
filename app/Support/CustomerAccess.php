@@ -31,8 +31,8 @@ class CustomerAccess
         if (! $user) {
             return false;
         }
-        if ($user->isAdmin()) {
-            return true; // オーナーは全件閲覧可
+        if ($user->isAdmin() || $user->isManager()) {
+            return true; // オーナー・店長は全件閲覧可（編集は不可・私だけのメモは別途制御）
         }
 
         $castId = self::currentCastId();

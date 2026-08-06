@@ -49,7 +49,7 @@
                     @php($shared = $r->sharedNotes->first())
                     <tr>
                         <td class="sticky-col">{{ $r->cast?->display_name }}</td>
-                        <td class="sticky-col" style="left:64px"><strong>{{ $r->customer_name }}</strong></td>
+                        <td class="sticky-col" style="left:64px"><a href="{{ route('admin.customer.show', $r) }}" style="color:var(--rose-deep);font-weight:700">{{ $r->customer_name }}</a></td>
                         <td>{{ $r->line_display_name ?: '—' }}</td>
                         <td>
                             @if($canEdit)

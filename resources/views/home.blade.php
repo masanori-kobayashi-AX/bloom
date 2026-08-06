@@ -103,15 +103,14 @@
         <div class="card">
             <div class="row"><h2 style="margin:0">来店中のお客様</h2><span style="flex:1"></span><a href="{{ route('staff.work.index') }}" style="font-size:13px">来店運用ページ →</a></div>
             @forelse($presentVisits as $v)
-                <a href="{{ route('staff.visits.show', $v) }}" style="display:block;color:inherit">
-                    <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
-                        <span>{{ $v->customer->relationships->firstWhere('cast_id', $v->primary_cast_id)?->customer_name ?? ('顧客#'.$v->customer_id) }}</span>
-                        <span class="muted" style="font-size:12px"> 指名：{{ $v->primaryCast?->display_name ?? '—' }}</span>
-                        <span style="flex:1"></span>
-                        @if($v->after_status)<span class="tag" style="border-color:{{ $v->after_status->badgeColor() }};color:{{ $v->after_status->badgeColor() }}">🌙 {{ $v->after_status->label() }}</span>@endif
-                        <span class="muted" style="font-size:12px">{{ $v->arrived_at->format('H:i') }}〜</span>
-                    </div>
-                </a>
+                @php($vr = $v->customer->relationships->firstWhere('cast_id', $v->primary_cast_id) ?? $v->customer->relationships->first())
+                <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
+                    @if($vr)<a href="{{ route('admin.customer.show', $vr) }}" style="color:var(--rose-deep);font-weight:600">{{ $vr->customer_name }}</a>@else<span>顧客#{{ $v->customer_id }}</span>@endif
+                    <span class="muted" style="font-size:12px"> 指名：{{ $v->primaryCast?->display_name ?? '—' }}</span>
+                    <span style="flex:1"></span>
+                    @if($v->after_status)<span class="tag" style="border-color:{{ $v->after_status->badgeColor() }};color:{{ $v->after_status->badgeColor() }}">🌙 {{ $v->after_status->label() }}</span>@endif
+                    <a href="{{ route('staff.visits.show', $v) }}" class="muted" style="font-size:12px">{{ $v->arrived_at->format('H:i') }}〜 対応</a>
+                </div>
             @empty
                 <p class="muted">現在、来店中のお客様はいません。</p>
             @endforelse
@@ -122,6 +121,7 @@
             <p class="muted">まずはスタッフのアカウントを作成し、キャストと担当黒服を紐付けてください。</p>
             <div class="row" style="margin-top:12px">
                 <a class="btn sm" href="{{ route('admin.customers') }}">📋 顧客一覧（全体）</a>
+                <a class="btn sm ghost" href="{{ route('admin.seats.index') }}">🪑 席の管理</a>
                 <a class="btn sm ghost" href="{{ route('admin.accounts.index') }}">👥 アカウント管理</a>
                 <a class="btn sm ghost" href="{{ route('admin.assignments.index') }}">🔗 担当の紐付け</a>
                 <a class="btn sm ghost" href="{{ route('manager.announcements.index') }}">📣 お知らせ配信</a>

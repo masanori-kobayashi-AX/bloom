@@ -253,6 +253,36 @@ class BacklogHardeningTest extends TestCase
         $this->actingAs($manager)->post(route('admin.accounts.reset-password', $cu))->assertRedirect();
     }
 
+    public function test_manager_manages_seats_and_cast_cannot(): void
+    {
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+        [$cu, $cast] = $this->makeCast('yui');
+
+        $this->actingAs($manager)->post(route('admin.seats.store'), ['name' => 'VIP1'])->assertRedirect();
+        $this->assertDatabaseHas('seats', ['name' => 'VIP1', 'store_id' => $this->store->id]);
+        $this->actingAs($manager)->get(route('admin.seats.index'))->assertOk()->assertSee('VIP1');
+
+        $this->actingAs($cu)->get(route('admin.seats.index'))->assertForbidden();
+    }
+
+    public function test_manager_views_customer_detail_readonly_without_private_memo(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => 'たっくん', 'status' => 'honshimei']);
+        $rel->notes()->create(['store_id' => $this->store->id, 'cast_id' => $cast->id, 'body' => 'ないしょのメモ']);
+        $rel->sharedNotes()->create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'body' => '共有メモ']);
+
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        $res = $this->actingAs($manager)->get(route('admin.customer.show', $rel));
+        $res->assertOk()->assertSee('たっくん')->assertSee('共有メモ')->assertDontSee('ないしょのメモ');
+
+        // 黒服はこの詳細に入れない
+        $staff = $this->makeStaff('kuro');
+        $this->actingAs($staff)->get(route('admin.customer.show', $rel))->assertForbidden();
+    }
+
     public function test_structured_alert_stores_source_and_expiry(): void
     {
         [$cu, $cast] = $this->makeCast('yui');

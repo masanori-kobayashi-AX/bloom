@@ -126,6 +126,12 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
             Route::get('/admin/customers', [\App\Http\Controllers\Manager\CustomerOverviewController::class, 'index'])->name('admin.customers');
             Route::post('/admin/customers/{relationship}/cell', [\App\Http\Controllers\Manager\CustomerOverviewController::class, 'updateCell'])->name('admin.customers.cell');
+            // 店長・オーナー用の顧客詳細（閲覧のみ。私だけのメモはオーナーのみ）
+            Route::get('/admin/customer/{customer}', [CustomerController::class, 'show'])->name('admin.customer.show');
+            // 席の管理・席割り
+            Route::get('/admin/seats', [\App\Http\Controllers\Manager\SeatController::class, 'index'])->name('admin.seats.index');
+            Route::post('/admin/seats', [\App\Http\Controllers\Manager\SeatController::class, 'store'])->name('admin.seats.store');
+            Route::delete('/admin/seats/{seat}', [\App\Http\Controllers\Manager\SeatController::class, 'destroy'])->name('admin.seats.destroy');
         });
 
         // アカウント管理・紐付け（責任者・管理者のみ）

@@ -3,6 +3,7 @@
 @section('wrapClass', 'wide')
 
 @section('content')
+    <datalist id="seatlist">@foreach($seats as $seatName)<option value="{{ $seatName }}">@endforeach</datalist>
     <div class="row">
         <h1 style="margin:0">来店中のお客様</h1>
         <span style="flex:1"></span>
@@ -20,11 +21,14 @@
             <div class="card" style="margin:0">
                 <div class="row" style="gap:12px">
                     <form method="POST" action="{{ route('staff.visits.seat', $v) }}" style="margin:0" title="タップで席を変更">@csrf
-                        <input name="seat" value="{{ $v->seat }}" placeholder="席" onchange="this.form.submit()"
+                        <input name="seat" value="{{ $v->seat }}" placeholder="席" onchange="this.form.submit()" list="seatlist"
                                class="seat-badge" style="width:66px;border:none;text-align:center;outline:none">
                     </form>
                     <div style="min-width:0">
-                        <div class="cust-name">{{ $card['name'] }}</div>
+                        @php($isMgr = auth()->user()->isManager() || auth()->user()->isAdmin())
+                        <div class="cust-name">
+                            @if($isMgr && $card['relId'])<a href="{{ route('admin.customer.show', $card['relId']) }}" style="color:inherit">{{ $card['name'] }}</a>@else{{ $card['name'] }}@endif
+                        </div>
                         <div class="muted" style="font-size:12px">
                             指名：{{ $v->primaryCast?->display_name ?? '—' }} ・ {{ $v->arrived_at->format('H:i') }}〜
                         </div>
