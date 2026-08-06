@@ -28,6 +28,7 @@ class AfterController extends Controller
             'destination' => ['nullable', 'string', 'max:100'],
             'companion' => ['nullable', 'string', 'max:100'],
             'departed_at' => ['nullable', 'date'],
+            'expected_home_at' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -37,6 +38,7 @@ class AfterController extends Controller
             'destination' => $data['destination'] ?? null,
             'companion' => $data['companion'] ?? null,
             'departed_at' => ! empty($data['departed_at']) ? Carbon::parse($data['departed_at']) : now(),
+            'expected_home_at' => ! empty($data['expected_home_at']) ? Carbon::parse($data['expected_home_at']) : null,
             'note' => $data['note'] ?? null,
             'status' => 'out',
         ]);

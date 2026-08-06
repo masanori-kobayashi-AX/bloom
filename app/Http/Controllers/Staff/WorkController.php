@@ -189,9 +189,11 @@ class WorkController extends Controller
         }
         $castIds = $casts->pluck('id');
 
-        // まだ帰宅連絡がないアフター（＝見守り継続中）は日付に関わらず常に上へ
+        // まだ帰宅連絡がないアフター（＝見守り継続中）は日付に関わらず常に上へ。
+        // 予定帰宅時刻が早い順＝より超過しているものを先頭に。
         $watching = \App\Models\AfterLog::with(['cast', 'customer'])
             ->out()->whereIn('cast_id', $castIds)
+            ->orderByRaw('expected_home_at is null, expected_home_at asc')
             ->orderBy('departed_at')->get();
 
         // 指定日のアフター記録（帰宅済みも含む・確認用）

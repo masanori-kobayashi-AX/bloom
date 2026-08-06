@@ -205,6 +205,30 @@ class Phase3VisitTest extends TestCase
         $this->assertNotNull($log->fresh()->home_reported_at);
     }
 
+    public function test_after_overdue_is_flagged_when_expected_home_passed(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+
+        // 予定帰宅時刻を過去にして登録＝未連絡（予定超過）
+        $this->actingAs($manager)->post(route('staff.after.store'), [
+            'cast_id' => $cast->id,
+            'destination' => 'BAR月',
+            'expected_home_at' => now()->subMinutes(30)->format('Y-m-d\TH:i'),
+        ])->assertRedirect();
+
+        $log = \App\Models\AfterLog::first();
+        $this->assertTrue($log->isOverdue()); // 予定を過ぎて帰宅連絡なし＝要対応
+
+        // 画面に「未連絡（予定帰宅を過ぎています）」と対応手順が出る
+        $this->actingAs($manager)->get(route('staff.after'))
+            ->assertOk()->assertSee('未連絡')->assertSee('店長へ連絡');
+
+        // 帰宅連絡が来れば超過は解消
+        $this->actingAs($manager)->post(route('staff.after.home', $log))->assertRedirect();
+        $this->assertFalse($log->fresh()->isOverdue());
+    }
+
     public function test_cast_cannot_access_staff_area(): void
     {
         [$cu, $cast] = $this->makeCast('yui');

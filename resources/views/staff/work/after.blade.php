@@ -10,14 +10,53 @@
     <h1>アフター見守り</h1>
     <div class="notice" style="margin-top:0">キャストが<strong>どの店へ・何時から</strong>行ったかを記録し、<strong>帰宅連絡が来るまで見守ります</strong>。無事に帰宅の連絡が来たら「帰宅連絡あり」を押してください。</div>
 
-    {{-- 見守り中：帰宅連絡がまだ来ていない（最優先） --}}
+    @php($overdue = $watching->filter(fn ($l) => $l->isOverdue()))
+    @php($onTime = $watching->reject(fn ($l) => $l->isOverdue()))
+
+    {{-- 未連絡（予定超過）：最優先で対応 --}}
+    @if($overdue->isNotEmpty())
+    <div class="card" style="border-color:var(--warn);background:#fff5f3">
+        <div class="row">
+            <h2 style="margin:0;color:var(--warn)">🚨 未連絡（予定帰宅を過ぎています）</h2>
+            <span style="flex:1"></span>
+            <span class="tag" style="border-color:var(--warn);color:var(--warn)">{{ $overdue->count() }}名</span>
+        </div>
+        <div class="notice" style="margin:8px 0;border-color:var(--warn)">連絡が取れない時は <strong>①本人に電話 → ②緊急連絡先 → ③店長へ連絡</strong>。見守りは「台帳をつける」ことではなく「無事を確認する」ことです。</div>
+        @foreach($overdue as $log)
+            <div style="border-bottom:1px solid var(--line);padding:12px 0">
+                <div class="row">
+                    <strong style="font-size:16px;color:var(--warn)">{{ $log->cast->display_name }}</strong>
+                    @if($log->destination)<span class="tag">🏙 {{ $log->destination }}</span>@endif
+                    @if($log->companion)<span class="muted" style="font-size:12px">同伴：{{ $log->companion }}</span>@endif
+                </div>
+                <div class="row" style="margin-top:4px">
+                    <span style="font-size:13px;color:var(--warn)">
+                        予定帰宅 {{ $log->expected_home_at?->format('H:i') }}・<strong>{{ $log->expected_home_at->diffForHumans(null, true) }}超過</strong>
+                        <span class="muted">（{{ $log->departed_at?->format('H:i') }}出発）</span>
+                    </span>
+                </div>
+                @if($log->note)<div class="muted" style="font-size:12px;margin-top:4px">📝 {{ $log->note }}</div>@endif
+                <div class="row" style="margin-top:8px;gap:8px">
+                    <form method="POST" action="{{ route('staff.after.home', $log) }}">@csrf
+                        <button class="btn" type="submit" style="background:#2f855a">✓ 帰宅連絡あり</button>
+                    </form>
+                    <form method="POST" action="{{ route('staff.after.destroy', $log) }}" onsubmit="return confirm('この記録を取り消しますか？')">@csrf @method('DELETE')
+                        <button class="btn-ghost" type="submit" style="font-size:12px">取消</button>
+                    </form>
+                </div>
+            </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- 見守り中：帰宅連絡がまだ来ていない（予定時刻内） --}}
     <div class="card" style="border-color:#d9822b">
         <div class="row">
             <h2 style="margin:0">🌙 見守り中（帰宅連絡待ち）</h2>
             <span style="flex:1"></span>
-            <span class="tag" style="border-color:#d9822b;color:#d9822b">{{ $watching->count() }}名</span>
+            <span class="tag" style="border-color:#d9822b;color:#d9822b">{{ $onTime->count() }}名</span>
         </div>
-        @forelse($watching as $log)
+        @forelse($onTime as $log)
             <div style="border-bottom:1px solid var(--line);padding:12px 0">
                 <div class="row">
                     <strong style="font-size:16px">{{ $log->cast->display_name }}</strong>
@@ -27,7 +66,8 @@
                 <div class="row" style="margin-top:4px">
                     <span class="muted" style="font-size:13px">
                         {{ $log->departed_at?->format('H:i') }} 出発
-                        @if($log->departed_at)・<strong style="color:#d9822b">{{ $log->departed_at->diffForHumans(null, true) }}経過</strong>@endif
+                        @if($log->departed_at)・{{ $log->departed_at->diffForHumans(null, true) }}経過@endif
+                        @if($log->expected_home_at)・<span style="color:#d9822b">予定帰宅 {{ $log->expected_home_at->format('H:i') }}</span>@endif
                     </span>
                 </div>
                 @if($log->note)<div class="muted" style="font-size:12px;margin-top:4px">📝 {{ $log->note }}</div>@endif
@@ -66,8 +106,16 @@
                     <input name="companion" type="text" placeholder="例：たっくん">
                 </div>
             </div>
-            <label>出発時刻</label>
-            <input name="departed_at" type="datetime-local" value="{{ now()->format('Y-m-d\TH:i') }}">
+            <div class="row" style="gap:10px">
+                <div style="flex:1">
+                    <label>出発時刻</label>
+                    <input name="departed_at" type="datetime-local" value="{{ now()->format('Y-m-d\TH:i') }}">
+                </div>
+                <div style="flex:1">
+                    <label>予定帰宅時刻（連絡の目安）</label>
+                    <input name="expected_home_at" type="datetime-local">
+                </div>
+            </div>
             <label>メモ（任意）</label>
             <input name="note" type="text" placeholder="連絡先・タクシー方向など">
             <button class="btn" type="submit" style="margin-top:10px">🌙 見守り開始を記録</button>

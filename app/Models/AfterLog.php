@@ -16,13 +16,14 @@ class AfterLog extends Model
 
     protected $fillable = [
         'store_id', 'cast_id', 'customer_id', 'companion', 'destination',
-        'departed_at', 'home_reported_at', 'status', 'note', 'created_by', 'updated_by',
+        'departed_at', 'expected_home_at', 'home_reported_at', 'status', 'note', 'created_by', 'updated_by',
     ];
 
     protected function casts(): array
     {
         return [
             'departed_at' => 'datetime',
+            'expected_home_at' => 'datetime',
             'home_reported_at' => 'datetime',
         ];
     }
@@ -46,5 +47,13 @@ class AfterLog extends Model
     public function isHome(): bool
     {
         return $this->status === 'home';
+    }
+
+    /** 予定帰宅時刻を過ぎても帰宅連絡がない＝未連絡（要対応）。 */
+    public function isOverdue(): bool
+    {
+        return $this->status === 'out'
+            && $this->expected_home_at !== null
+            && $this->expected_home_at->isPast();
     }
 }
