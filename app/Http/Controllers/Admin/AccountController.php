@@ -35,16 +35,55 @@ class AccountController extends Controller
             : [RoleKey::Cast, RoleKey::Staff];
     }
 
-    public function index()
+    /** 操作者が対象ロールのアカウントを管理（停止/PW再設定等）できるか。 */
+    private function canManageRole(RoleKey $targetRole): bool
     {
+        $actor = Auth::user();
+        if ($actor->isAdmin()) {
+            return $targetRole !== RoleKey::Admin; // 管理者アカウント同士は相互操作しない
+        }
+        // 責任者(店長)は cast / staff のみ。manager・admin は不可（権限昇格防止）
+        return $actor->isManager() && in_array($targetRole, [RoleKey::Cast, RoleKey::Staff], true);
+    }
+
+    public function index(Request $request)
+    {
+        $actor = Auth::user();
         $storeId = CurrentStore::id();
+        $role = $request->input('role', ''); // 役割で絞り込み（cast/staff/manager）
 
         $members = UserStoreMembership::with(['user', 'role'])
             ->where('store_id', $storeId)
-            ->orderByDesc('created_at')
-            ->get();
+            ->when($role !== '', fn ($q) => $q->whereHas('role', fn ($r) => $r->where('key', $role)))
+            ->join('roles', 'roles.id', '=', 'user_store_memberships.role_id')
+            ->orderBy('roles.level') // キャスト→黒服→店長→管理者の順
+            ->orderByDesc('user_store_memberships.created_at')
+            ->select('user_store_memberships.*')
+            ->get()
+            ->each(function ($m) {
+                $m->manageable = $m->role ? $this->canManageRole(RoleKey::from($m->role->key)) : false;
+            });
 
-        return view('admin.accounts.index', compact('members'));
+        // 店長にはシステム管理者アカウントを一覧に出さない（最上位・不可視）
+        if ($actor->isManager()) {
+            $members = $members->reject(fn ($m) => $m->role?->key === RoleKey::Admin->value)->values();
+        }
+
+        // 絞り込み用の役割（店長は管理者を選べない）
+        $roleOptions = [RoleKey::Cast, RoleKey::Staff, RoleKey::Manager];
+        if ($actor->isAdmin()) {
+            $roleOptions[] = RoleKey::Admin;
+        }
+
+        return view('admin.accounts.index', compact('members', 'role', 'roleOptions'));
+    }
+
+    /** 対象アカウントを操作できるか検証（サーバー側の防御）。 */
+    private function authorizeManage(User $user): void
+    {
+        $storeId = CurrentStore::id();
+        $membership = UserStoreMembership::with('role')->where('store_id', $storeId)->where('user_id', $user->id)->firstOrFail();
+        abort_unless($membership->role && $this->canManageRole(RoleKey::from($membership->role->key)), 403, 'このアカウントを操作する権限がありません。');
     }
 
     public function create()
@@ -123,6 +162,7 @@ class AccountController extends Controller
 
     public function suspend(Request $request, User $user): RedirectResponse
     {
+        $this->authorizeManage($user);
         $request->validate(['reason' => ['nullable', 'string', 'max:255']]);
         $storeId = CurrentStore::id();
 
@@ -149,6 +189,7 @@ class AccountController extends Controller
 
     public function reactivate(User $user): RedirectResponse
     {
+        $this->authorizeManage($user);
         $storeId = CurrentStore::id();
         $membership = UserStoreMembership::where('store_id', $storeId)
             ->where('user_id', $user->id)->firstOrFail();
@@ -164,6 +205,7 @@ class AccountController extends Controller
 
     public function resetPassword(User $user): RedirectResponse
     {
+        $this->authorizeManage($user);
         $storeId = CurrentStore::id();
         // 店舗スコープ確認
         UserStoreMembership::where('store_id', $storeId)->where('user_id', $user->id)->firstOrFail();

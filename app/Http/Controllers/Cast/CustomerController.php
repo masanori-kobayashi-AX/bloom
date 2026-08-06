@@ -280,6 +280,7 @@ class CustomerController extends Controller
             'sharedNotes',
             'nextActions' => fn ($q) => $q->orderBy('completed')->orderBy('due_on'),
             'statusHistories',
+            'contactLogs',
         ]);
 
         $today = now()->toDateString();

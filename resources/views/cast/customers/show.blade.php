@@ -57,6 +57,45 @@
         @endif
     </div>
 
+    {{-- クイック操作：電話・LINE・来店 --}}
+    @if($canEdit)
+    <div class="card" id="quick">
+        <div class="row" style="gap:8px">
+            <form method="POST" action="{{ route('cast.customers.contact', $rel) }}" style="flex:1">@csrf<input type="hidden" name="channel" value="phone">
+                <button class="btn sm ghost" type="submit" style="width:100%">📞 電話</button></form>
+            <form method="POST" action="{{ route('cast.customers.contact', $rel) }}" style="flex:1">@csrf<input type="hidden" name="channel" value="line">
+                <button class="btn sm ghost" type="submit" style="width:100%">💬 LINE</button></form>
+            <form method="POST" action="{{ route('cast.customers.contact', $rel) }}" style="flex:1">@csrf<input type="hidden" name="channel" value="other">
+                <button class="btn sm ghost" type="submit" style="width:100%">🔖 その他</button></form>
+        </div>
+        <details style="margin-top:10px">
+            <summary style="cursor:pointer;font-weight:700;color:var(--rose-deep)">🚪 来店（今きた／予定を入れる）</summary>
+            <div style="margin-top:10px">
+                <form method="POST" action="{{ route('cast.customers.arrived', $rel) }}">@csrf
+                    <button class="btn" type="submit">🚪 今きた（本日の来店を登録）</button>
+                </form>
+                <div class="notice">「今きた」は黒服の『今日の予定』に出ます。先の予定は下の「📅 来店予定」から日時を指定して登録できます。</div>
+                <a class="btn sm ghost" href="#visits" style="margin-top:6px">日時を指定して予定を入れる →</a>
+            </div>
+        </details>
+        <div class="notice">📞電話・💬LINE を押すと「やり取り履歴」に記録されます（ワンタップ）。</div>
+    </div>
+    @endif
+
+    {{-- やり取り履歴 --}}
+    <div class="card" id="history">
+        <h2>やり取り履歴</h2>
+        @forelse($rel->contactLogs->take(12) as $log)
+            <div class="row" style="border-bottom:1px solid var(--line);padding:6px 0">
+                <span>{{ $log->channel->icon() }} {{ $log->channel->label() }}@if($log->note)：{{ $log->note }}@endif</span>
+                <span style="flex:1"></span>
+                <span class="muted" style="font-size:11px">{{ $log->contacted_at?->format('n/j H:i') }}</span>
+            </div>
+        @empty
+            <p class="muted">まだ履歴はありません。上のボタンで記録できます。</p>
+        @endforelse
+    </div>
+
     {{-- 🌸 私だけのメモ（本人＋オーナーのみ） --}}
     <div class="ch ch-private" id="private">
         <h2>🌸 私だけのメモ</h2>

@@ -67,6 +67,11 @@ class CastCustomerRelationship extends Model
         return $this->hasMany(CustomerStatusHistory::class, 'relationship_id')->latest();
     }
 
+    public function contactLogs()
+    {
+        return $this->hasMany(ContactLog::class, 'relationship_id')->latest('contacted_at');
+    }
+
     /** 自分（ログイン中キャスト）の関係だけに絞る。 */
     public function scopeOwnedBy(Builder $query, int $castId): Builder
     {

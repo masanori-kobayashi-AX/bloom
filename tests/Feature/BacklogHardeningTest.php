@@ -207,6 +207,52 @@ class BacklogHardeningTest extends TestCase
         $this->assertSame('honshimei', $rel->fresh()->status->value);
     }
 
+    public function test_contact_log_records_phone_and_line(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'line_only']);
+
+        $this->actingAs($cu)->post(route('cast.customers.contact', $rel), ['channel' => 'phone'])->assertRedirect();
+        $this->actingAs($cu)->post(route('cast.customers.contact', $rel), ['channel' => 'line', 'note' => '来週の約束'])->assertRedirect();
+
+        $this->assertDatabaseHas('contact_logs', ['relationship_id' => $rel->id, 'channel' => 'phone']);
+        $this->assertDatabaseHas('contact_logs', ['relationship_id' => $rel->id, 'channel' => 'line', 'note' => '来週の約束']);
+    }
+
+    public function test_arrived_creates_today_plan_and_visit_log(): void
+    {
+        [$cu, $cast] = $this->makeCast('yui');
+        $customer = Customer::create(['store_id' => $this->store->id]);
+        $rel = CastCustomerRelationship::create(['store_id' => $this->store->id, 'customer_id' => $customer->id, 'cast_id' => $cast->id, 'customer_name' => '客', 'status' => 'honshimei']);
+
+        $this->actingAs($cu)->post(route('cast.customers.arrived', $rel))->assertRedirect();
+
+        $this->assertDatabaseHas('visit_plans', ['customer_id' => $customer->id, 'cast_id' => $cast->id]);
+        $this->assertDatabaseHas('contact_logs', ['relationship_id' => $rel->id, 'channel' => 'visit']);
+
+        // 黒服の今日の予定に出る
+        $staff = $this->makeStaff('kuro');
+        $this->actingAs($staff)->get(route('staff.plans'))->assertOk()->assertSee('客');
+    }
+
+    public function test_manager_cannot_manage_system_admin_account(): void
+    {
+        $admin = $this->makeUser(RoleKey::Admin, 'owner');
+        $manager = $this->makeUser(RoleKey::Manager, 'tencho');
+        [$cu, $cast] = $this->makeCast('yui');
+
+        // 店長は管理者のPW再設定・停止ができない（権限昇格防止）
+        $this->actingAs($manager)->post(route('admin.accounts.reset-password', $admin))->assertForbidden();
+        $this->actingAs($manager)->post(route('admin.accounts.suspend', $admin), ['reason' => 'x'])->assertForbidden();
+
+        // 店長の一覧に管理者は出ない
+        $this->actingAs($manager)->get(route('admin.accounts.index'))->assertOk()->assertDontSee('owner');
+
+        // 店長はキャストは管理できる
+        $this->actingAs($manager)->post(route('admin.accounts.reset-password', $cu))->assertRedirect();
+    }
+
     public function test_structured_alert_stores_source_and_expiry(): void
     {
         [$cu, $cast] = $this->makeCast('yui');

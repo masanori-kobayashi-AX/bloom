@@ -121,7 +121,7 @@
 @auth
     <header class="topbar">
         <div class="inner">
-            <span class="brand">Bloom<span class="dot">.</span></span>
+            <a class="brand" href="{{ route('home') }}" style="text-decoration:none;color:inherit">Bloom<span class="dot">.</span></a>
             <span class="spacer"></span>
             @if(auth()->user()->role())
                 <span class="role-badge">{{ auth()->user()->role()->label() }}</span>

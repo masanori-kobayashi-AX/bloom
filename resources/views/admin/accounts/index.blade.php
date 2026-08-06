@@ -1,16 +1,27 @@
 @extends('layouts.app')
 @section('title', 'アカウント管理')
+@section('wrapClass', 'wide')
 
 @section('content')
     <div class="row">
         <h1 style="margin:0">アカウント管理</h1>
         <span class="spacer" style="flex:1"></span>
+        <a class="btn sm ghost" href="{{ route('admin.assignments.index') }}">🔗 担当の紐付け</a>
         <a class="btn sm" href="{{ route('admin.accounts.create') }}">＋ 新規作成</a>
     </div>
 
+    <form method="GET" action="{{ route('admin.accounts.index') }}" style="margin:12px 0">
+        <select name="role" onchange="this.form.submit()">
+            <option value="" @selected($role==='')>すべての役割</option>
+            @foreach($roleOptions as $r)
+                <option value="{{ $r->value }}" @selected($role===$r->value)>{{ $r->label() }}</option>
+            @endforeach
+        </select>
+    </form>
+
     <div class="card">
         @if($members->isEmpty())
-            <p class="muted">まだアカウントがありません。「＋ 新規作成」から追加してください。</p>
+            <p class="muted">該当するアカウントがありません。</p>
         @else
         <div style="overflow-x:auto">
         <table>
@@ -33,6 +44,7 @@
                         @endif
                     </td>
                     <td>
+                        @if($m->manageable)
                         <div class="row" style="justify-content:flex-end">
                             <form method="POST" action="{{ route('admin.accounts.reset-password', $m->user) }}"
                                   onsubmit="return confirm('パスワードを再設定します。よろしいですか？')">
@@ -52,6 +64,9 @@
                                 </form>
                             @endif
                         </div>
+                        @else
+                            <span class="muted" style="font-size:12px">操作不可</span>
+                        @endif
                     </td>
                 </tr>
             @endforeach
@@ -60,5 +75,5 @@
         </div>
         @endif
     </div>
-    <div class="notice">利用停止はログインを即座に無効化します。履歴・データは削除されません（退店者の記録は保持）。</div>
+    <div class="notice">利用停止はログインを即座に無効化します。履歴・データは削除されません。※システム管理者は最上位で、他の役割からは操作できません。</div>
 @endsection

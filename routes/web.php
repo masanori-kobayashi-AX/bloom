@@ -76,6 +76,9 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::put('/{customer}', [CustomerController::class, 'update'])->name('update');
                 Route::post('/{customer}/status', [CustomerController::class, 'updateStatus'])->name('status');
                 Route::post('/{customer}/close-consult', [CustomerController::class, 'closeConsult'])->name('close-consult');
+                // やり取り（電話・LINE）記録／来店（今きた）
+                Route::post('/{customer}/contact', [\App\Http\Controllers\Cast\ContactController::class, 'store'])->name('contact');
+                Route::post('/{customer}/arrived', [\App\Http\Controllers\Cast\ContactController::class, 'arrived'])->name('arrived');
                 Route::post('/{customer}/notes', [CustomerNoteController::class, 'storePrivate'])->name('notes.private');
                 Route::post('/{customer}/shared-notes', [CustomerNoteController::class, 'storeShared'])->name('notes.shared');
                 Route::post('/{customer}/alerts', [CustomerAlertController::class, 'store'])->name('alerts.store');
