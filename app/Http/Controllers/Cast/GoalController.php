@@ -29,12 +29,20 @@ class GoalController extends Controller
 
         $data = $request->validate([
             'target_amount' => ['required', 'integer', 'min:0', 'max:100000000'],
+            'target_honshimei' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'target_dohan' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
         CastGoal::updateOrCreate(
             ['cast_id' => $castId, 'period' => CastGoal::currentPeriod()],
-            ['store_id' => CurrentStore::id(), 'target_amount' => $data['target_amount'], 'note' => $data['note'] ?? null]
+            [
+                'store_id' => CurrentStore::id(),
+                'target_amount' => $data['target_amount'],
+                'target_honshimei' => $data['target_honshimei'] ?? 0,
+                'target_dohan' => $data['target_dohan'] ?? 0,
+                'note' => $data['note'] ?? null,
+            ]
         );
 
         return redirect()->route('home')->with('status', '今月の目標を設定しました。');

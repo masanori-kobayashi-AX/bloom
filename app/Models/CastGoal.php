@@ -14,12 +14,16 @@ class CastGoal extends Model
     use Blameable, BelongsToStore;
 
     protected $fillable = [
-        'store_id', 'cast_id', 'period', 'target_amount', 'note', 'created_by', 'updated_by',
+        'store_id', 'cast_id', 'period', 'target_amount', 'target_honshimei', 'target_dohan', 'note', 'created_by', 'updated_by',
     ];
 
     protected function casts(): array
     {
-        return ['target_amount' => 'integer'];
+        return [
+            'target_amount' => 'integer',
+            'target_honshimei' => 'integer',
+            'target_dohan' => 'integer',
+        ];
     }
 
     public function cast()

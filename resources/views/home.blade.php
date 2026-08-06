@@ -30,9 +30,19 @@
         <div class="card">
             <div class="row"><h2 style="margin:0">今月の目標</h2><span style="flex:1"></span><a href="{{ route('cast.goal.edit') }}" style="font-size:13px">{{ $goal['hasGoal'] ? '変更' : '設定する' }}</a></div>
             @if($goal['hasGoal'])
-                <div class="row" style="margin:6px 0 4px"><span class="muted" style="font-size:13px">¥{{ number_format($goal['actual']) }} / ¥{{ number_format($goal['target']) }}</span><span style="flex:1"></span><strong>{{ $goal['rate'] }}%</strong></div>
+                @if(($goal['target'] ?? 0) > 0)
+                <div class="row" style="margin:6px 0 4px"><span class="muted" style="font-size:13px">💰 売上　¥{{ number_format($goal['actual']) }} / ¥{{ number_format($goal['target']) }}</span><span style="flex:1"></span><strong>{{ $goal['rate'] }}%</strong></div>
                 <div class="bar"><span style="width:{{ $goal['rate'] }}%"></span></div>
-                <div class="muted" style="font-size:11px;margin-top:6px">あと ¥{{ number_format(max(0, $goal['target'] - $goal['actual'])) }} で目標達成。あなたのための目標です（評価には使いません）。</div>
+                @endif
+                @if(($goal['honTarget'] ?? 0) > 0)
+                <div class="row" style="margin:10px 0 4px"><span class="muted" style="font-size:13px">⭐ 本指名　{{ $goal['honActual'] }} / {{ $goal['honTarget'] }}件</span><span style="flex:1"></span><strong>{{ $goal['honRate'] }}%</strong></div>
+                <div class="bar"><span style="width:{{ $goal['honRate'] }}%"></span></div>
+                @endif
+                @if(($goal['dohanTarget'] ?? 0) > 0)
+                <div class="row" style="margin:10px 0 4px"><span class="muted" style="font-size:13px">🤝 同伴　{{ $goal['dohanActual'] }} / {{ $goal['dohanTarget'] }}件</span><span style="flex:1"></span><strong>{{ $goal['dohanRate'] }}%</strong></div>
+                <div class="bar"><span style="width:{{ $goal['dohanRate'] }}%"></span></div>
+                @endif
+                <div class="muted" style="font-size:11px;margin-top:8px">あなたのための目標です（評価には使いません）。</div>
             @else
                 <p class="muted" style="margin:6px 0">今月の売上目標を設定すると、進捗がここに表示されます。</p>
             @endif

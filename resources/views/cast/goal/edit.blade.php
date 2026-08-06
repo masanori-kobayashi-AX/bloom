@@ -8,6 +8,17 @@
             <label for="target_amount">売上目標（円）</label>
             <input id="target_amount" name="target_amount" type="number" inputmode="numeric" min="0" value="{{ old('target_amount', $goal?->target_amount) }}" required autofocus placeholder="例：1000000">
 
+            <div class="row" style="gap:12px">
+                <div style="flex:1">
+                    <label for="target_honshimei">本指名の目標（件）</label>
+                    <input id="target_honshimei" name="target_honshimei" type="number" inputmode="numeric" min="0" value="{{ old('target_honshimei', $goal?->target_honshimei) }}" placeholder="例：20">
+                </div>
+                <div style="flex:1">
+                    <label for="target_dohan">同伴の目標（件）</label>
+                    <input id="target_dohan" name="target_dohan" type="number" inputmode="numeric" min="0" value="{{ old('target_dohan', $goal?->target_dohan) }}" placeholder="例：8">
+                </div>
+            </div>
+
             <label for="note">ひとこと（任意）</label>
             <input id="note" name="note" value="{{ old('note', $goal?->note) }}" placeholder="今月の意気込みなど">
 

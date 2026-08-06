@@ -135,14 +135,27 @@ class MetricsService
     {
         $goal = CastGoal::where('cast_id', $castId)->where('period', CastGoal::currentPeriod())->first();
         $target = (int) ($goal?->target_amount ?? 0);
-        $actual = (int) Visit::where('primary_cast_id', $castId)
-            ->whereBetween('arrived_at', [$this->monthStart, $this->monthEnd])->sum('amount');
+
+        $visitsThisMonth = Visit::where('primary_cast_id', $castId)
+            ->whereBetween('arrived_at', [$this->monthStart, $this->monthEnd]);
+        $actual = (int) (clone $visitsThisMonth)->sum('amount');
+        $honActual = (clone $visitsThisMonth)->where('is_honshimei', true)->count();
+        $dohanActual = (clone $visitsThisMonth)->where('dohan', true)->count();
+
+        $rate = fn ($a, $t) => $t > 0 ? min(100, (int) round($a / $t * 100)) : null;
 
         return [
             'target' => $target,
             'actual' => $actual,
-            'rate' => $target > 0 ? min(100, (int) round($actual / $target * 100)) : null,
-            'hasGoal' => $goal !== null && $target > 0,
+            'rate' => $rate($actual, $target),
+            'hasGoal' => $goal !== null && ($target > 0 || ($goal->target_honshimei ?? 0) > 0 || ($goal->target_dohan ?? 0) > 0),
+            // 本指名・同伴の件数目標と実績
+            'honTarget' => (int) ($goal?->target_honshimei ?? 0),
+            'honActual' => $honActual,
+            'honRate' => $rate($honActual, (int) ($goal?->target_honshimei ?? 0)),
+            'dohanTarget' => (int) ($goal?->target_dohan ?? 0),
+            'dohanActual' => $dohanActual,
+            'dohanRate' => $rate($dohanActual, (int) ($goal?->target_dohan ?? 0)),
         ];
     }
 
