@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Laravel Cloud等のロードバランサ/プロキシ配下でも、HTTPS判定とクライアントIP
+        // （ログイン履歴・監査ログ）を正しく扱う。
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'active' => EnsureAccountActive::class,
             'password.changed' => EnsurePasswordChanged::class,
