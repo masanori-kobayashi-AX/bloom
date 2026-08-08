@@ -57,7 +57,7 @@
                 </a>
                 @if($status === '__close__' && $r->status?->value !== 'closed')
                     <div class="row" style="gap:6px;margin-top:8px;border-top:1px solid var(--line);padding-top:8px">
-                        <form method="POST" action="{{ route('cast.customers.status', $r) }}" onsubmit="return confirm('「{{ $r->customer_name }}」を対応終了（クローズ）にしますか？')">@csrf
+                        <form method="POST" action="{{ route('cast.customers.status', $r) }}" data-confirm="「{{ $r->customer_name }}」を対応終了（クローズ）にしますか？">@csrf
                             <input type="hidden" name="status" value="closed"><input type="hidden" name="note" value="クローズ検討から終了">
                             <button class="btn sm danger" type="submit">対応終了</button>
                         </form>

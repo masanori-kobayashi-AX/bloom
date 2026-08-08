@@ -47,13 +47,13 @@
                         @if($m->manageable)
                         <div class="row" style="justify-content:flex-end">
                             <form method="POST" action="{{ route('admin.accounts.reset-password', $m->user) }}"
-                                  onsubmit="return confirm('パスワードを再設定します。よろしいですか？')">
+                                  data-confirm="パスワードを再設定します。よろしいですか？">
                                 @csrf
                                 <button class="btn sm ghost" type="submit">PW再設定</button>
                             </form>
                             @if($m->status === 'active')
                                 <form method="POST" action="{{ route('admin.accounts.suspend', $m->user) }}"
-                                      onsubmit="return confirm('このアカウントを退店（クローズ）にします。ログインできなくなり、担当や一覧からも外れます。データは保持され、後から復帰できます。よろしいですか？')">
+                                      data-confirm="このアカウントを退店（クローズ）にします。ログインできなくなり、担当や一覧からも外れます。データは保持され、後から復帰できます。よろしいですか？">
                                     @csrf
                                     <button class="btn sm danger" type="submit">退店（クローズ）</button>
                                 </form>

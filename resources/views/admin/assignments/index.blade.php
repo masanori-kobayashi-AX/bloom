@@ -48,7 +48,7 @@
                         <td>{{ $a->staff?->display_name }}</td>
                         <td style="text-align:right">
                             <form method="POST" action="{{ route('admin.assignments.release', $a) }}"
-                                  onsubmit="return confirm('担当を解除しますか？')">
+                                  data-confirm="担当を解除しますか？">
                                 @csrf
                                 <button class="btn sm ghost" type="submit">解除</button>
                             </form>

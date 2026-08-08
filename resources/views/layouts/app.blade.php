@@ -186,6 +186,17 @@
     <form id="logout-form" method="POST" action="{{ route('logout') }}" style="display:none">@csrf</form>
 @endauth
 
+{{-- 確認モーダル：window.confirm はLINE等のアプリ内ブラウザで抑制されるため、自前UIで代替 --}}
+<div id="bloom-confirm" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(20,10,15,.5);align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:16px;max-width:400px;width:100%;padding:22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.25)">
+        <p id="bloom-confirm-msg" style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#2a2024;white-space:pre-wrap"></p>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button type="button" id="bloom-confirm-cancel" class="btn ghost" style="min-width:88px">キャンセル</button>
+            <button type="button" id="bloom-confirm-ok" class="btn danger" style="min-width:88px">実行する</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // 音声入力補助（店内は騒がしいので補助扱い）。data-voice に対象inputのidを指定。
 function bloomVoice(btn){
@@ -200,6 +211,34 @@ function bloomVoice(btn){
     r.onend=function(){btn.textContent=orig; btn.style.color='';};
     try{r.start();}catch(e){btn.textContent=orig;}
 }
+
+// data-confirm 付きフォームの送信を、自前モーダルで確認してから実行する。
+// （window.confirm はLINEアプリ内ブラウザ等で無効化され、押しても送信されない事故を防ぐ）
+(function(){
+    var box=document.getElementById('bloom-confirm');
+    if(!box) return;
+    var msgEl=document.getElementById('bloom-confirm-msg');
+    var okBtn=document.getElementById('bloom-confirm-ok');
+    var cancelBtn=document.getElementById('bloom-confirm-cancel');
+    var pending=null;
+    function close(){box.style.display='none';pending=null;}
+    okBtn.addEventListener('click',function(){
+        var f=pending; close();
+        if(f){f.dataset.confirmed='1'; (f.requestSubmit?f.requestSubmit():f.submit());}
+    });
+    cancelBtn.addEventListener('click',close);
+    box.addEventListener('click',function(e){if(e.target===box) close();});
+    document.addEventListener('submit',function(e){
+        var f=e.target;
+        if(!f||!f.hasAttribute('data-confirm')) return;
+        if(f.dataset.confirmed==='1'){f.dataset.confirmed=''; return;} // 確認済みは通す
+        e.preventDefault();
+        pending=f;
+        msgEl.textContent=f.getAttribute('data-confirm');
+        var label=f.getAttribute('data-confirm-ok'); okBtn.textContent=label||'実行する';
+        box.style.display='flex';
+    },true);
+})();
 </script>
 </body>
 </html>

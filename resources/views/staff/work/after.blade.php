@@ -40,7 +40,7 @@
                     <form method="POST" action="{{ route('staff.after.home', $log) }}">@csrf
                         <button class="btn" type="submit" style="background:#2f855a">✓ 帰宅連絡あり</button>
                     </form>
-                    <form method="POST" action="{{ route('staff.after.destroy', $log) }}" onsubmit="return confirm('この記録を取り消しますか？')">@csrf @method('DELETE')
+                    <form method="POST" action="{{ route('staff.after.destroy', $log) }}" data-confirm="この記録を取り消しますか？">@csrf @method('DELETE')
                         <button class="btn-ghost" type="submit" style="font-size:12px">取消</button>
                     </form>
                 </div>
@@ -75,7 +75,7 @@
                     <form method="POST" action="{{ route('staff.after.home', $log) }}">@csrf
                         <button class="btn" type="submit" style="background:#2f855a">✓ 帰宅連絡あり</button>
                     </form>
-                    <form method="POST" action="{{ route('staff.after.destroy', $log) }}" onsubmit="return confirm('この記録を取り消しますか？')">@csrf @method('DELETE')
+                    <form method="POST" action="{{ route('staff.after.destroy', $log) }}" data-confirm="この記録を取り消しますか？">@csrf @method('DELETE')
                         <button class="btn-ghost" type="submit" style="font-size:12px">取消</button>
                     </form>
                 </div>

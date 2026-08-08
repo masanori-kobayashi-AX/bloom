@@ -43,7 +43,7 @@
             <div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
                 <span class="tag">{{ $seat->name }}</span>
                 <span style="flex:1"></span>
-                <form method="POST" action="{{ route('admin.seats.destroy', $seat) }}" onsubmit="return confirm('席「{{ $seat->name }}」を削除しますか？')">
+                <form method="POST" action="{{ route('admin.seats.destroy', $seat) }}" data-confirm="席「{{ $seat->name }}」を削除しますか？">
                     @csrf @method('DELETE')
                     <button class="btn sm ghost" type="submit">削除</button>
                 </form>

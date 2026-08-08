@@ -25,7 +25,7 @@
                 <div class="row" style="margin-top:10px">
                     <span class="muted" style="font-size:12px">{{ $a->published_at?->format('n/j H:i') }}@if($a->expires_on) ・ 〜{{ $a->expires_on->format('n/j') }}@endif</span>
                     <span style="flex:1"></span>
-                    <form method="POST" action="{{ route('manager.announcements.destroy', $a) }}" onsubmit="return confirm('このお知らせを取り下げますか？')">
+                    <form method="POST" action="{{ route('manager.announcements.destroy', $a) }}" data-confirm="このお知らせを取り下げますか？">
                         @csrf @method('DELETE')
                         <button class="btn sm ghost" type="submit">取り下げ</button>
                     </form>

@@ -158,7 +158,7 @@
                         @if($al->resolved)<span class="tag off">取下げ済</span>@elseif($al->isExpired())<span class="tag off">失効</span>@endif
                         <span style="flex:1"></span>
                         @if($canEdit && !$al->resolved)
-                        <form method="POST" action="{{ route('cast.alerts.resolve', $al) }}" onsubmit="return confirm('この注意を取り下げますか？（記録は残ります）')">@csrf
+                        <form method="POST" action="{{ route('cast.alerts.resolve', $al) }}" data-confirm="この注意を取り下げますか？（記録は残ります）">@csrf
                             <button class="btn sm ghost" type="submit">取り下げ</button>
                         </form>
                         @endif

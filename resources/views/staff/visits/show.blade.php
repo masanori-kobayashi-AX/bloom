@@ -43,7 +43,7 @@
                     {{ $vc->cast?->display_name }}
                     <span class="muted" style="font-size:11px">（{{ $vc->cast_id === $visit->primary_cast_id ? '指名' : ($vc->role === 'help' ? 'ヘルプ' : $vc->role) }}）</span>
                     @if($visit->status->value === 'present' && $vc->cast_id !== $visit->primary_cast_id)
-                        <form method="POST" action="{{ route('staff.visits.casts.remove', [$visit, $vc]) }}" style="display:inline" onsubmit="return confirm('このキャストを外しますか？')">@csrf @method('DELETE')
+                        <form method="POST" action="{{ route('staff.visits.casts.remove', [$visit, $vc]) }}" style="display:inline" data-confirm="このキャストを外しますか？">@csrf @method('DELETE')
                             <button type="submit" style="border:none;background:none;color:var(--warn);cursor:pointer">×</button>
                         </form>
                     @endif
@@ -128,7 +128,7 @@
 
     {{-- 来店取消（誤操作） --}}
     <div class="card" style="text-align:center">
-        <form method="POST" action="{{ route('staff.visits.cancel', $visit) }}" onsubmit="return confirm('この来店を取り消しますか？（誤って開始した場合のみ。記録は残ります）')">@csrf
+        <form method="POST" action="{{ route('staff.visits.cancel', $visit) }}" data-confirm="この来店を取り消しますか？（誤って開始した場合のみ。記録は残ります）">@csrf
             <button class="btn sm ghost danger" type="submit" style="width:auto">誤操作：この来店を取り消す</button>
         </form>
     </div>
