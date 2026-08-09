@@ -157,7 +157,10 @@ class AccountController extends Controller
 
         return redirect()->route('admin.accounts.index')
             ->with('status', "アカウントを作成しました。ログインID: {$user->login_id}")
-            ->with('temp_password', $tempPassword); // 初回パスワードを一度だけ表示
+            ->with('temp_password', $tempPassword) // 初回パスワードを一度だけ表示
+            ->with('cred_kind', 'create')
+            ->with('cred_login_id', $user->login_id)
+            ->with('cred_name', $data['display_name']);
     }
 
     public function suspend(Request $request, User $user): RedirectResponse
@@ -301,6 +304,9 @@ class AccountController extends Controller
 
         return redirect()->route('admin.accounts.index')
             ->with('status', "{$user->name} のパスワードを再設定しました。")
-            ->with('temp_password', $tempPassword);
+            ->with('temp_password', $tempPassword)
+            ->with('cred_kind', 'reset')
+            ->with('cred_login_id', $user->login_id)
+            ->with('cred_name', $user->name);
     }
 }

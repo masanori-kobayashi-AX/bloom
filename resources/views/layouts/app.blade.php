@@ -136,7 +136,25 @@
         <div class="flash ok">{{ session('status') }}</div>
     @endif
     @if(session('temp_password'))
-        <div class="temp">初回パスワード（この場でご本人に伝えてください。以後は表示されません）：<br><code>{{ session('temp_password') }}</code></div>
+        @php
+            $credName = session('cred_name', '');
+            $credId = session('cred_login_id', '');
+            $credPw = session('temp_password');
+            $credUrl = url('/');
+            $credTitle = session('cred_kind') === 'reset' ? 'Bloom パスワード再設定のお知らせ' : 'Bloom ログイン情報';
+            $credLead = session('cred_kind') === 'reset'
+                ? ($credName ? "{$credName}さんのパスワードを再設定しました。" : 'パスワードを再設定しました。')
+                : ($credName ? "{$credName}さん専用のアカウントです。他の人には教えないでください。" : 'あなた専用のアカウントです。他の人には教えないでください。');
+            $credMsg = "【{$credTitle}】\n{$credLead}\n\n▼ログイン\n{$credUrl}\nログインID：{$credId}\n仮パスワード：{$credPw}\n\n初回ログインで、自分だけのパスワードに変更してください。";
+        @endphp
+        <div class="temp">
+            <strong>仮パスワードは、この画面でしか表示されません。</strong>下の文をコピーして、ご本人にLINE等で送ってください。
+            <textarea id="cred-msg" readonly rows="9" style="width:100%;margin-top:10px;padding:10px;border:1px solid #e3c9d2;border-radius:10px;font-size:13px;line-height:1.7;background:#fff;color:#2a2024;box-sizing:border-box;resize:vertical">{{ $credMsg }}</textarea>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                <button type="button" class="btn" onclick="bloomCopyCred(this)">この文をコピー</button>
+                <span id="cred-copied" style="color:#2f8f5b;font-size:13px;display:none">✓ コピーしました</span>
+            </div>
+        </div>
     @endif
     @if($errors->any())
         <div class="flash err">
@@ -210,6 +228,18 @@ function bloomVoice(btn){
     r.onerror=function(){};
     r.onend=function(){btn.textContent=orig; btn.style.color='';};
     try{r.start();}catch(e){btn.textContent=orig;}
+}
+
+// 送信用メッセージのコピー（clipboard API＋execCommandフォールバック。アプリ内ブラウザ対策）
+function bloomCopyCred(btn){
+    var ta=document.getElementById('cred-msg'); if(!ta) return;
+    var done=function(){var s=document.getElementById('cred-copied'); if(s){s.style.display='inline'; setTimeout(function(){s.style.display='none';},2500);}};
+    ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(ta.value).then(done, function(){ try{document.execCommand('copy'); done();}catch(e){} });
+    }else{
+        try{document.execCommand('copy'); done();}catch(e){}
+    }
 }
 
 // data-confirm 付きフォームの送信を、自前モーダルで確認してから実行する。
